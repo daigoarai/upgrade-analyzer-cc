@@ -1,7 +1,7 @@
 # Upgrade Analyzer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0-green.svg)](https://github.com/yourusername/upgrade-analyzer/releases)
+[![Version](https://img.shields.io/badge/version-1.0-green.svg)](https://github.com/daigoarai/upgrade-analyzer/releases)
 [![Cursor](https://img.shields.io/badge/Cursor-Latest-blueviolet.svg)](https://cursor.sh/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
