@@ -1,0 +1,25 @@
+# バージョンアップ影響分析レポート（個別プロジェクト用）
+reports/*
+!reports/.gitkeep
+
+# バックアップファイル
+*.backup
+*.bak
+
+# 一時ファイル
+*.tmp
+.DS_Store
+
+# ログファイル
+*.log
+
+# エディタ設定
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# examples/は保持（参考例として）
+!examples/
+
