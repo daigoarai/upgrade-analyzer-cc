@@ -58,7 +58,7 @@
 以下の観点で網羅的に調査してください：
 
 ### 1. メタ情報
-- 調査日
+- **調査日**: 現在の日付を動的に取得（YYYY-MM-DD形式）
 - セマンティックバージョン分類（MAJOR/MINOR/PATCH）
 - 重要度（高/中/低）
 
@@ -108,26 +108,56 @@
 
 ### 7. 依存関係の既知問題（重要）
 以下の観点で**推移的依存関係（依存の依存）も含めて**調査してください：
+
+#### 7.1 主要依存関係の調査
+- **React/React DOM**: バージョン互換性、新機能の影響
+- **TypeScript**: 型定義の変更、コンパイルエラー
+- **Node.js**: ランタイム互換性、API変更
+- **Webpack/Vite**: ビルドツールの互換性
+- **ESLint/Prettier**: リンター・フォーマッターの互換性
+
+#### 7.2 推移的依存関係の深掘り調査
 - **主要な依存モジュールのGitHub Issues**を確認（特にOpen Issues）
 - 依存モジュールの3階層程度まで掘り下げて既知問題を調査
-- **クロスブラウザ互換性の問題**（全プラットフォーム）
-  - **モバイル**: iOS Safari（特に16系以下）、Android Chrome、Samsung Internet
-  - **デスクトップ**: Windows（IE11含む旧Edge）、macOS Safari、各種ブラウザの古いバージョン
-- JavaScript/CSS の互換性問題
-  - 正規表現の新しい構文（negative lookbehind、named groups等）
-  - CSS Grid、Flexboxの古いブラウザ対応
-  - ES2015+の機能（Optional Chaining、Nullish Coalescing等）
-- ポリフィルの必要性（core-js、whatwg-fetch等）
-- バンドルサイズへの影響
+- **npm/yarn audit**でセキュリティ脆弱性を確認
 
-**調査方法**:
-1. GitHub で「{製品名} dependencies issues」を検索
-2. 主要依存パッケージの「Issues」タブを確認
-3. 以下のキーワードで絞り込み：
-   - **モバイル**: 「iOS」「Android」「mobile」「Safari」「Samsung Internet」
-   - **デスクトップ**: 「Windows」「macOS」「Edge」「Firefox」
-   - **互換性**: 「browser compatibility」「polyfill」「transpile」
-   - **エラー**: 「SyntaxError」「not supported」「not defined」
+#### 7.3 クロスブラウザ互換性の問題（全プラットフォーム）
+**📱 モバイル**:
+- **iOS Safari**: 16.3以下での正規表現エラー（negative lookbehind非対応）
+- **Android Chrome**: 古いバージョンでのES2015+機能非対応
+- **Samsung Internet**: 独自実装による互換性問題
+
+**💻 デスクトップ**:
+- **Windows Edge（旧版）**: CSS Grid Layoutの部分的サポート
+- **macOS Safari**: 古いバージョンでのJavaScript機能制限
+- **Firefox**: 独自実装による動作差異
+
+#### 7.4 JavaScript/CSS の互換性問題
+- **正規表現**: negative lookbehind、named groups等の新構文
+- **CSS**: Grid Layout、Flexboxの古いブラウザ対応
+- **ES2015+**: Optional Chaining、Nullish Coalescing等
+- **ポリフィル**: core-js、whatwg-fetch等の必要性
+
+#### 7.5 具体的な調査方法
+**検索キーワード**:
+- `"{製品名} dependencies issues"`
+- `"{製品名} browser compatibility"`
+- `"{製品名} mobile safari issues"`
+- `"{製品名} edge compatibility"`
+- `"{製品名} polyfill required"`
+
+**GitHub Issues検索**:
+- 主要依存パッケージの「Issues」タブを確認
+- 以下のキーワードで絞り込み：
+  - **モバイル**: 「iOS」「Android」「mobile」「Safari」「Samsung Internet」
+  - **デスクトップ**: 「Windows」「macOS」「Edge」「Firefox」
+  - **互換性**: 「browser compatibility」「polyfill」「transpile」
+  - **エラー**: 「SyntaxError」「not supported」「not defined」
+
+**具体的な問題例**:
+- `mdast-util-gfm-autolink-literal@2.0.1` - iOS Safari 16.3以下で正規表現エラー
+- `css-grid-polyfill` - Windows Edge 18以下でCSS Grid表示崩れ
+- `core-js@3.x` - 古いブラウザでのES2015+機能非対応
 
 ### 8. 参考情報（必須）
 - 公式リリースノートURL（発行日付き）
@@ -166,10 +196,15 @@
 
 以下のセクションを含めてください：
 
-1. メタ情報（表形式）
+1. **メタ情報**（表形式）
+   - **調査日**: 現在の日付を動的に取得（YYYY-MM-DD形式）
 2. 差分サマリ
 3. 主要変更点（分類別）
-4. 依存関係の既知問題（⚠️**全プラットフォームのブラウザ互換性**含む）
+4. **依存関係の既知問題**（⚠️**全プラットフォームのブラウザ互換性**含む）
+   - **具体的な問題例を必ず含める**:
+     - `mdast-util-gfm-autolink-literal@2.0.1` - iOS Safari 16.3以下で正規表現エラー
+     - `css-grid-polyfill` - Windows Edge 18以下でCSS Grid表示崩れ
+     - `core-js@3.x` - 古いブラウザでのES2015+機能非対応
    - Windows、macOS、iOS、Androidの各ブラウザでの問題を明記
    - モバイルとデスクトップを区別して記載
 5. テスト戦略・観点（優先度別・プラットフォーム別）

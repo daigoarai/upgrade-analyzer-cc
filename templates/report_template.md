@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| **調査日** | YYYY-MM-DD |
+| **調査日** | 現在の日付を動的に取得（YYYY-MM-DD形式） |
 | **製品名** | {製品名} |
 | **現行バージョン** | {バージョンFrom} |
 | **移行先バージョン** | {バージョンTo} |
@@ -120,13 +120,7 @@
 - **GitHub Issue**: [リンク](URL)
 - **影響度**: 🔴高 / 🟡中 / 🟢低
 
-**例1（モバイル互換性）**: 
-- mdast-util-gfm-autolink-literal@2.0.1 - iOS Safari 16.3以下で正規表現エラー
-  - **影響**: 📱 iOS Safari 16.3以下
-  - **エラー**: `SyntaxError: Invalid regular expression: invalid group specifier name`
-  - **原因**: Negative lookbehind正規表現の非対応
-  - **対応**: バージョン1.0.5に固定、またはiOS 16.4以上をサポート対象とする
-  - [GitHub Issue #10](https://github.com/syntax-tree/mdast-util-gfm-autolink-literal/issues/10)
+
 
 **例2（デスクトップ互換性）**:
 - {ライブラリ名}@X.X.X - Windows Edge（旧版）でCSS Grid表示崩れ
@@ -284,7 +278,28 @@
 
 ---
 
-**レポート生成日**: YYYY-MM-DD  
+**レポート生成日**: 現在の日付を動的に取得（YYYY-MM-DD形式）  
 **レポート作成者**: AI Assistant  
 **バージョン**: 1.0
 
+**例1（モバイル互換性）**: 
+- `mdast-util-gfm-autolink-literal@2.0.1` - iOS Safari 16.3以下で正規表現エラー
+  - **影響**: 📱 iOS Safari 16.3以下
+  - **エラー**: `SyntaxError: Invalid regular expression: invalid group specifier name`
+  - **原因**: Negative lookbehind正規表現の非対応
+  - **対応**: バージョン1.0.5に固定、またはiOS 16.4以上をサポート対象とする
+  - [GitHub Issue #10](https://github.com/syntax-tree/mdast-util-gfm-autolink-literal/issues/10)
+
+**例2（デスクトップ互換性）**:
+- `css-grid-polyfill@1.0.0` - Windows Edge 18以下でCSS Grid表示崩れ
+  - **影響**: 💻 Windows Edge 18以下（EdgeHTML）
+  - **原因**: CSS Grid Layoutの部分的サポート
+  - **対応**: Flexboxフォールバック追加、またはサポート対象から除外
+  - [GitHub Issue #5](https://github.com/FremyCompany/css-grid-polyfill/issues/5)
+
+**例3（JavaScript互換性）**:
+- `core-js@3.x` - 古いブラウザでのES2015+機能非対応
+  - **影響**: 全ブラウザ（IE11、Safari 12以下、Chrome 60以下）
+  - **原因**: ES2015+機能（Optional Chaining、Nullish Coalescing等）の非対応
+  - **対応**: ポリフィル追加、またはBabel設定でトランスパイル
+  - [core-js Documentation](https://github.com/zloirock/core-js)
