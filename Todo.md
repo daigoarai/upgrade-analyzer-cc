@@ -17,3 +17,15 @@
   - Depends on: docs-codex/の修正完了
   - Estimate: 0.5h
   - Note: ドキュメント差分を手動レビューし、追加テストは不要と判断
+- [x] Cursor/Codex両スラッシュコマンドの版差分出力要件を確認し、指示の差異を整理する
+  - Priority: High
+  - Depends on: 既存ドキュメントの理解
+  - Estimate: 0.5h
+- [x] バージョン別全変更ログとリンク出力の指示をコマンド定義に追加する（.cursorrules, prompts/upgrade-analyzer.md）
+  - Priority: High
+  - Depends on: 版差分出力要件確認
+  - Estimate: 1.0h
+- [x] Cursor向けテンプレート/docsを更新し、バージョン別全変更ログとリンク要件を整備する（templates/prompt_template.md, docs/03_detailed_design.md）
+  - Priority: High
+  - Depends on: コマンド定義の更新
+  - Estimate: 1.0h
