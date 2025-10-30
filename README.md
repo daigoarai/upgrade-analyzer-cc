@@ -3,10 +3,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Version](https://img.shields.io/badge/version-3.1-green.svg)](https://github.com/daigoarai/upgrade-analyzer/releases)
 [![Cursor](https://img.shields.io/badge/Cursor-Latest-blueviolet.svg)](https://cursor.sh/)
+[![Codex CLI](https://img.shields.io/badge/Codex%20CLI-Latest-green.svg)](https://codex.sh/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
 > 🔍 ソフトウェアのバージョンアップ影響分析を自動化するツール  
-> Cursor + Browser機能で公式情報を自動収集・分析
+> Cursor + Browser機能 / Codex CLI + Web検索機能で公式情報を自動収集・分析
 
 ---
 
@@ -16,6 +17,8 @@
 - [特徴](#特徴)
 - [セットアップ](#セットアップ)
 - [使い方](#使い方)
+  - [Cursor版](#cursor版)
+  - [Codex CLI版](#codex-cli版)
 - [実例](#実例)
 - [Tips & トラブルシューティング](#tips--トラブルシューティング)
 - [対応範囲](#対応範囲)
@@ -28,12 +31,12 @@
 
 このツールは、ソフトウェアライブラリ・フレームワークのバージョンアップ時の**影響範囲調査**と**テスト戦略立案**を効率化するためのツールです。
 
-**Cursor最新版 + Browser機能**を活用し、AIが公式情報を自動収集・分析して、包括的なレポートを生成します。
+**Cursor + Browser機能** または **Codex CLI + Web検索機能**を活用し、AIが公式情報を自動収集・分析して、包括的なレポートを生成します。
 
 ### 目的
 
 - バージョンアップ時の見落としを防ぎ、インシデントリスクを低減
-- **Browser機能**により一次情報（公式リリースノート、GitHub、セキュリティ通告）をリアルタイムで収集
+- **Browser機能**（Cursor）または**Web検索機能**（Codex CLI）により一次情報（公式リリースノート、GitHub、セキュリティ通告）をリアルタイムで収集
 - 再現可能で監査可能な調査プロセスの確立
 - チーム内での知見共有とナレッジベース化
 
@@ -53,7 +56,14 @@
 
 ## セットアップ
 
-### 必須前提条件
+### 対応環境
+
+このツールは以下の2つの環境で使用できます：
+
+- **Cursor版**: Cursor + Browser機能
+- **Codex CLI版**: Codex CLI + Web検索機能
+
+### Cursor版の前提条件
 
 以下が揃っていることを確認してください：
 
@@ -77,6 +87,27 @@
 
 > 💡 **重要**: 実行の度に、毎回Browser機能がReadyになっているか確認してください
 
+### Codex CLI版の前提条件
+
+以下が揃っていることを確認してください：
+
+- ✅ **Codex CLI 最新版** がインストール済み
+- ✅ **インターネット接続** がある
+- ✅ **プロンプトファイル** が適切に配置されている
+
+#### Codex CLIのインストール
+
+```bash
+# Codex CLIのインストール（公式サイトから）
+# https://codex.sh/ を参照
+
+# インストール確認
+codex --version
+
+# 初期設定
+codex init
+```
+
 ---
 
 ### インストール
@@ -99,12 +130,82 @@ cd upgrade-analyzer
 
 ## 使い方
 
-### 基本的な使い方（推奨）
+### Cursor版
+
+#### 基本的な使い方（推奨）
 
 Cursorでこのプロジェクトを開き、チャットで以下のコマンドを実行するだけです：
 
 ```text
 /upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo>
+```
+
+#### 実行例
+
+```text
+# シンプルな使い方
+/upgrade-analyzer Next.js 15.4 15.5.3
+/upgrade-analyzer React 18.2.0 18.3.1
+/upgrade-analyzer PostgreSQL 14.1 15.0
+/upgrade-analyzer TypeScript 5.0 5.3
+```
+
+### Codex CLI版
+
+#### 基本的な使い方（推奨）
+
+Codex CLIで以下のコマンドを実行するだけです：
+
+```text
+/prompts:upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo>
+```
+
+#### 実行例
+
+```text
+# シンプルな使い方
+/prompts:upgrade-analyzer Next.js 15.4 15.5.3
+/prompts:upgrade-analyzer React 18.2.0 18.3.1
+/prompts:upgrade-analyzer PostgreSQL 14.1 15.0
+/prompts:upgrade-analyzer TypeScript 5.0 5.3
+```
+
+#### セットアップ
+
+1. **プロンプトファイルの配置**:
+   ```bash
+   # プロンプトファイルを配置
+   mkdir -p prompts
+   cp prompts/upgrade-analyzer.md ~/.codex/prompts/
+   ```
+
+2. **Codex CLIで確認**:
+   ```bash
+   # Codex CLIを起動
+   codex
+   
+   # スラッシュコマンドの確認
+   /prompts:upgrade-analyzer
+   ```
+
+詳細な使用方法は [CODEX_USAGE.md](./CODEX_USAGE.md) を参照してください。
+
+---
+
+## 共通の使い方
+
+### 基本的な使い方（推奨）
+
+Cursor版またはCodex CLI版で以下のコマンドを実行するだけです：
+
+**Cursor版**:
+```text
+/upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo>
+```
+
+**Codex CLI版**:
+```text
+/prompts:upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo>
 ```
 
 #### 実行例
@@ -356,13 +457,19 @@ reports/{製品名}_{バージョンFrom}_to_{バージョンTo}_{YYYYMMDD}.md
 
 ```text
 upgrade-analyzer/
-├── .cursorrules              # スラッシュコマンド定義
+├── .cursorrules              # Cursor版スラッシュコマンド定義
+├── prompts/                  # Codex CLI版プロンプトファイル
+│   └── upgrade-analyzer.md  # メインプロンプトファイル
 ├── README.md                  # このファイル
+├── CODEX_USAGE.md            # Codex CLI使用方法
+├── MIGRATION_GUIDE.md        # 移行ガイド
 ├── templates/
 │   ├── prompt_template.md    # 調査用プロンプトテンプレート
 │   └── report_template.md    # レポート出力テンプレート
 ├── examples/
 │   └── nextjs_15_to_15.5.3.md # 実例（Next.js）
+├── docs/                     # Cursor版設計書
+├── docs-codex/               # Codex版設計書
 └── reports/
     └── (調査結果を保存)
 ```
@@ -390,6 +497,9 @@ upgrade-analyzer/
 - [GitHub公開セットアップ](./GITHUB_SETUP.md) - GitHub公開手順
 - [コントリビューションガイド](./CONTRIBUTING.md) - 貢献方法
 - [セキュリティポリシー](./SECURITY.md) - セキュリティ報告
+- [Codex CLI使用方法](./CODEX_USAGE.md) - Codex CLI版の詳細な使用方法
+- [移行ガイド](./MIGRATION_GUIDE.md) - Cursor版からCodex版への移行手順
+- [Codex版設計書](./docs-codex/README.md) - Codex版の詳細な設計書
 
 ---
 
@@ -403,6 +513,7 @@ upgrade-analyzer/
 
 ## 更新履歴
 
+- **2025-01-28 v4.0**: Codex CLI対応 - Codex CLI版を追加、両環境での利用が可能に
 - **2025-10-08 v3.2**: ドキュメント統合 - README.mdに全情報を集約、より分かりやすく
 - **2025-10-06 v3.1**: プロジェクトコンテキスト対応 - 第4引数でプロジェクト情報を指定可能に
 - **2025-10-06 v3.0**: スラッシュコマンド対応 - `/upgrade-analyzer`コマンドで実行可能に
@@ -457,4 +568,4 @@ upgrade-analyzer/
 
 ---
 
-**最終更新**: 2025-10-21
+**最終更新**: 2025-01-28
