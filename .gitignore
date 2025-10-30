@@ -23,3 +23,9 @@ reports/*
 # examples/は保持（参考例として）
 !examples/
 
+#開発用ファイル
+TEST_PLAN.md
+Todo.md
+MIGRATION_GUIDE.md
+GITHUB_SETUP.md
+CONTRIBUTING.md
