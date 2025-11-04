@@ -72,20 +72,33 @@
 
 #### Browser機能の確認方法
 
+**Step 1: SettingsでBrowser Automationを有効化**
+
 **macOS の場合**:
-1. Cursorを開く
-2. メニューバーの「Cursor」→「基本設定」→「Cursor Setting」を選択
-3. 「Tools & MCP」タブを選択
-4. 「Browser Automation」が「Ready」になっていることを確認
+1. Cursorを開き、メニューバーの「Cursor」→「Settings…」（または `⌘ ,`）を選択
+2. 左側メニューから **Tools & Integrations** を開く
+3. 「Browser Automation」のトグルが **Enabled** になっていることを確認
+4. ステータスが「Ready」になるまで数秒待ち、必要に応じて「Enable Browser Automation」をクリック
 
 **Windows の場合**:
-1. Cursorを開く
-2. メニューバーの「ファイル」→「設定」（または `Ctrl + ,`）を選択
-3. 「Cursor Setting」を開く
-4. 「Tools & MCP」タブを選択
-5. 「Browser Automation」が「Ready」になっていることを確認
+1. Cursorを開き、メニューバーの「File」→「Settings」（または `Ctrl + ,`）を選択
+2. 左側メニューから **Tools & Integrations** を開く
+3. 「Browser Automation」のトグルが **Enabled** になっていることを確認
+4. ステータスが「Ready」になるまで数秒待ち、表示が「Needs setup」や「Disabled」の場合は「Enable Browser Automation」をクリック
 
-> 💡 **重要**: 実行の度に、毎回Browser機能がReadyになっているか確認してください
+> ショートカット: コマンドパレット（`⌘/Ctrl + ⇧ + P`）で「Browser Automation: Open Setup」や「Browser Automation: Enable」を選択すると設定画面に移動できます。
+
+**Step 2: チャット欄でBrowser機能を有効化（実行時）**
+
+SettingsでBrowser Automationを有効にしていても、**実際にコマンドを実行する際には、チャット欄で以下を設定する必要があります**：
+
+1. チャット欄上部の接続設定で「**Connected to internal connection**」を選択
+2. 「**BrowserTab**」をONにする
+
+> ⚠️ **重要**:
+> - SettingsでBrowser Automationを有効にしただけでは不十分です
+> - コマンド実行の**毎回**、チャット欄で「Connected to internal connection」を選択し「BrowserTab」をONにしてください
+> - これを行わないと、Browser機能が動作せず、公式情報の取得ができません
 
 ### Codex CLI版の前提条件
 
@@ -134,23 +147,38 @@ cd upgrade-analyzer
 
 #### 基本的な使い方（推奨）
 
-Cursorでこのプロジェクトを開き、チャットで以下のコマンドを実行するだけです：
+1. **Cursorでこのプロジェクトを開く**
+2. **チャット欄でBrowser機能を有効化**:
+   - チャット欄上部の接続設定で「**Connected to internal connection**」を選択
+   - 「**BrowserTab**」をONにする
+3. **以下のコマンドを実行**:
 
 ```text
 /upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo>
 ```
 
+> ⚠️ **重要**: SettingsでBrowser Automationを有効にしていても、**実際にコマンドを実行する際には、チャット欄で「Connected to internal connection」を選択し「BrowserTab」をONにする必要があります**。これを行わないと、Browser機能が動作しません。
+
 #### 実行例
 
-```text
-# シンプルな使い方
-/upgrade-analyzer Next.js 15.4 15.5.3
-/upgrade-analyzer React 18.2.0 18.3.1
-/upgrade-analyzer PostgreSQL 14.1 15.0
-/upgrade-analyzer TypeScript 5.0 5.3
-```
+- **Cursor版**:
+  ```text
+  /upgrade-analyzer Next.js 15.4 15.5.3
+  /upgrade-analyzer React 18.2.0 18.3.1
+  /upgrade-analyzer PostgreSQL 14.1 15.0
+  /upgrade-analyzer TypeScript 5.0 5.3
+  ```
+- **Codex CLI版**:
+  ```text
+  /prompts:upgrade-analyzer Next.js 15.4 15.5.3
+  /prompts:upgrade-analyzer React 18.2.0 18.3.1
+  /prompts:upgrade-analyzer PostgreSQL 14.1 15.0
+  /prompts:upgrade-analyzer TypeScript 5.0 5.3
+  ```
 
 ### Codex CLI版
+
+> ℹ️ Codex CLIでは `/upgrade-analyzer` のような短縮スラッシュコマンドは定義できません。必ず `/prompts:upgrade-analyzer` を使用してください。
 
 #### 基本的な使い方（推奨）
 
@@ -172,10 +200,13 @@ Codex CLIで以下のコマンドを実行するだけです：
 
 #### セットアップ
 
-1. **プロンプトファイルの配置**:
+1. **プロンプトファイルの配置（必須）**:
+   Codex CLIは `/prompts:<プロンプト名>` 形式のコマンドを `~/.codex/prompts/` 配下から読み込みます。以下の手順でグローバル領域にコピーしてください。
    ```bash
-   # プロンプトファイルを配置
-   mkdir -p prompts
+   # Codex CLIのグローバルプロンプトディレクトリを準備
+   mkdir -p ~/.codex/prompts
+
+   # プロンプトファイルをコピー
    cp prompts/upgrade-analyzer.md ~/.codex/prompts/
    ```
 
@@ -203,10 +234,13 @@ Cursor版またはCodex CLI版で以下のコマンドを実行するだけで�
 /upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo>
 ```
 
-**Codex CLI版**:
-```text
-/prompts:upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo>
+**Codex CLI版**（事前に `~/.codex/prompts/upgrade-analyzer.md` を配置する必要があります）:
+```bash
+# 自動保存付きラッパースクリプト（推奨）
+scripts/run_upgrade_analyzer.sh "<製品名>" "<バージョンFrom>" "<バージョンTo>" "[プロジェクト情報]"
 ```
+
+`scripts/run_upgrade_analyzer.sh` は Codex CLI に対して `/prompts:upgrade-analyzer` を実行し、生成されたMarkdownレポートを `reports/` に `{YYYYMMDD}_{HHMMSS}` 形式のタイムスタンプ付きで自動保存します。コマンドを直接入力する場合でもレポートは生成されますが、自動保存を保証するためにスクリプトの利用を推奨します。
 
 #### 実行例
 
@@ -235,27 +269,49 @@ AIが自動的に以下を実行します：
 
 ### プロジェクト情報を指定した使い方（より具体的なレポート）
 
+**⚠️ 事前準備**: Cursor版を使用する場合は、チャット欄で「**Connected to internal connection**」を選択し「**BrowserTab**」をONにしてください。
+
 プロジェクトの特性を指定すると、より実践的で具体的なレポートが生成されます：
 
-```text
-/upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo> "プロジェクト情報"
-```
+- **Cursor版**:
+  ```text
+  /upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo> "プロジェクト情報"
+  ```
+- **Codex CLI版**:
+  ```text
+  /prompts:upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo> "プロジェクト情報"
+  ```
 
 #### 実行例
 
-```text
-# Eコマースサイト
-/upgrade-analyzer Next.js 15.4 15.5.3 "Eコマースサイト、月間100万PV、決済機能とカート機能が重要、SEOとパフォーマンスが最優先"
+- **Cursor版**:
+  ```text
+  # Eコマースサイト
+  /upgrade-analyzer Next.js 15.4 15.5.3 "Eコマースサイト、月間100万PV、決済機能とカート機能が重要、SEOとパフォーマンスが最優先"
 
-# 社内システム
-/upgrade-analyzer React 18.2.0 18.3.1 "社内の勤怠管理システム、認証とアクセス制御が重要、ダウンタイム許容度低"
+  # 社内システム
+  /upgrade-analyzer React 18.2.0 18.3.1 "社内の勤怠管理システム、認証とアクセス制御が重要、ダウンタイム許容度低"
 
-# 金融系SaaS
-/upgrade-analyzer PostgreSQL 14.1 15.0 "金融系SaaSのデータベース、トランザクション整合性とセキュリティが最重要、24時間365日稼働、PCI-DSS準拠必須"
+  # 金融系SaaS
+  /upgrade-analyzer PostgreSQL 14.1 15.0 "金融系SaaSのデータベース、トランザクション整合性とセキュリティが最重要、24時間365日稼働、PCI-DSS準拠必須"
 
-# 大規模モノリポ
-/upgrade-analyzer TypeScript 5.0 5.3 "大規模なモノリポ構成、マイクロサービス30個以上、型安全性とビルド速度が重要"
-```
+  # 大規模モノリポ
+  /upgrade-analyzer TypeScript 5.0 5.3 "大規模なモノリポ構成、マイクロサービス30個以上、型安全性とビルド速度が重要"
+  ```
+- **Codex CLI版**:
+  ```text
+  # Eコマースサイト
+  /prompts:upgrade-analyzer Next.js 15.4 15.5.3 "Eコマースサイト、月間100万PV、決済機能とカート機能が重要、SEOとパフォーマンスが最優先"
+
+  # 社内システム
+  /prompts:upgrade-analyzer React 18.2.0 18.3.1 "社内の勤怠管理システム、認証とアクセス制御が重要、ダウンタイム許容度低"
+
+  # 金融系SaaS
+  /prompts:upgrade-analyzer PostgreSQL 14.1 15.0 "金融系SaaSのデータベース、トランザクション整合性とセキュリティが最重要、24時間365日稼働、PCI-DSS準拠必須"
+
+  # 大規模モノリポ
+  /prompts:upgrade-analyzer TypeScript 5.0 5.3 "大規模なモノリポ構成、マイクロサービス30個以上、型安全性とビルド速度が重要"
+  ```
 
 #### プロジェクト情報を指定するメリット
 
@@ -333,21 +389,23 @@ cat examples/nextjs_15_to_15.5.3.md
 生成されたレポートは`reports/`ディレクトリに以下の形式で保存されます：
 
 ```
-reports/{製品名}_{バージョンFrom}_to_{バージョンTo}_{YYYYMMDD}.md
+reports/{製品名}_{バージョンFrom}_to_{バージョンTo}_{YYYYMMDD}_{HHMMSS}.md
 ```
 
-例：`reports/nextjs_15.4_to_15.5.3_20251008.md`
+例：`reports/nextjs_15.4_to_15.5.3_20251008_143022.md`
 
 #### 2. 全プロジェクトで使う方法
 
-このプロジェクト以外でもコマンドを使いたい場合：
+- **Cursor版**  
+  1. Cursor設定を開く（macOS: `Cmd + ,` / Windows: `Ctrl + ,`）  
+  2. 「General」→「Rules for AI」を選択  
+  3. `.cursorrules`ファイルの内容をコピー＆ペースト  
+  4. 保存して閉じる  
 
-1. Cursor設定を開く（macOS: `Cmd + ,` / Windows: `Ctrl + ,`）
-2. 「General」→「Rules for AI」を選択
-3. `.cursorrules`ファイルの内容をコピー＆ペースト
-4. 保存して閉じる
+  これで全プロジェクトで`/upgrade-analyzer`コマンドが使えます。
 
-これで全プロジェクトで`/upgrade-analyzer`コマンドが使えます。
+- **Codex CLI版**  
+  プロンプトファイルを `~/.codex/prompts/upgrade-analyzer.md` にコピーすると、どのプロジェクトからでも `/prompts:upgrade-analyzer` を利用できます（短縮コマンドはサポートされません）。
 
 #### 3. レポートの活用方法
 
@@ -369,23 +427,35 @@ reports/{製品名}_{バージョンFrom}_to_{バージョンTo}_{YYYYMMDD}.md
 /upgrade-analyzer Next.js 15.0 15.5.3 "プロジェクト情報"
 ```
 
+Codex CLIの場合は、同じパラメータで `/prompts:upgrade-analyzer` を使用してください。
+
 ---
 
 ### 🔧 トラブルシューティング
 
 #### コマンドが認識されない
 
-**解決方法**:
-1. Cursorを再起動してください
-2. `.cursorrules`ファイルがプロジェクトルートにあることを確認
-3. Cursorで`upgrade-analyzer`ディレクトリを開いていることを確認
+- **Cursor版**  
+  1. Cursorを再起動してください  
+  2. `.cursorrules`ファイルがプロジェクトルートにあることを確認  
+  3. Cursorで`upgrade-analyzer`ディレクトリを開いていることを確認  
+
+- **Codex CLI版**  
+  1. `/upgrade-analyzer` ではなく `/prompts:upgrade-analyzer` を使用しているか確認  
+  2. `prompts/upgrade-analyzer.md` が現在のプロジェクト内にあるか、もしくは `~/.codex/prompts/` にコピーされているか確認  
+  3. Codex CLIを再起動してプロンプト一覧の読み込みをリフレッシュ
 
 #### Browser機能が動かない
 
 **解決方法**:
-1. Cursor設定で「Browser」機能がONになっているか確認
-2. Cursorを最新版にアップデート
-3. Cursorを再起動
+
+1. **チャット欄でBrowser機能を有効化しているか確認**:
+   - チャット欄上部の接続設定で「**Connected to internal connection**」を選択しているか確認
+   - 「**BrowserTab**」がONになっているか確認
+   - ⚠️ **重要**: SettingsでBrowser Automationを有効にしていても、チャット欄でこの設定を行わないとBrowser機能は動作しません
+2. Settings → **Tools & Integrations** で「Browser Automation」のトグルが **Enabled** か確認（必要なら「Enable Browser Automation」を実行）
+3. ステータスが「Ready」以外の場合は一度「Disable」→「Enable」で再初期化し、Cursorを再起動
+4. Cursorを最新版にアップデート（自動更新が保留の場合は一度終了して再起動）
 
 #### レポートが生成されない
 
@@ -463,6 +533,8 @@ upgrade-analyzer/
 ├── README.md                  # このファイル
 ├── CODEX_USAGE.md            # Codex CLI使用方法
 ├── MIGRATION_GUIDE.md        # 移行ガイド
+├── scripts/
+│   └── run_upgrade_analyzer.sh # Codex CLI自動保存ラッパー
 ├── templates/
 │   ├── prompt_template.md    # 調査用プロンプトテンプレート
 │   └── report_template.md    # レポート出力テンプレート
