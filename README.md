@@ -3,11 +3,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Version](https://img.shields.io/badge/version-3.1-green.svg)](https://github.com/daigoarai/upgrade-analyzer/releases)
 [![Cursor](https://img.shields.io/badge/Cursor-Latest-blueviolet.svg)](https://cursor.sh/)
-[![Codex CLI](https://img.shields.io/badge/Codex%20CLI-Latest-green.svg)](https://codex.sh/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
 > 🔍 ソフトウェアのバージョンアップ影響分析を自動化するツール  
-> Cursor + Browser機能 / Codex CLI + Web検索機能で公式情報を自動収集・分析
+> Cursor + Browser機能で公式情報を自動収集・分析
 
 ---
 
@@ -17,8 +16,6 @@
 - [特徴](#特徴)
 - [セットアップ](#セットアップ)
 - [使い方](#使い方)
-  - [Cursor版](#cursor版)
-  - [Codex CLI版](#codex-cli版)
 - [実例](#実例)
 - [Tips & トラブルシューティング](#tips--トラブルシューティング)
 - [対応範囲](#対応範囲)
@@ -31,12 +28,12 @@
 
 このツールは、ソフトウェアライブラリ・フレームワークのバージョンアップ時の**影響範囲調査**と**テスト戦略立案**を効率化するためのツールです。
 
-**Cursor + Browser機能** または **Codex CLI + Web検索機能**を活用し、AIが公式情報を自動収集・分析して、包括的なレポートを生成します。
+**Cursor + Browser機能**を活用し、AIが公式情報を自動収集・分析して、包括的なレポートを生成します。
 
 ### 目的
 
 - バージョンアップ時の見落としを防ぎ、インシデントリスクを低減
-- **Browser機能**（Cursor）または**Web検索機能**（Codex CLI）により一次情報（公式リリースノート、GitHub、セキュリティ通告）をリアルタイムで収集
+- **Browser機能**により一次情報（公式リリースノート、GitHub、セキュリティ通告）をリアルタイムで収集
 - 再現可能で監査可能な調査プロセスの確立
 - チーム内での知見共有とナレッジベース化
 
@@ -56,14 +53,7 @@
 
 ## セットアップ
 
-### 対応環境
-
-このツールは以下の2つの環境で使用できます：
-
-- **Cursor版**: Cursor + Browser機能
-- **Codex CLI版**: Codex CLI + Web検索機能
-
-### Cursor版の前提条件
+### 前提条件
 
 以下が揃っていることを確認してください：
 
@@ -100,27 +90,6 @@ SettingsでBrowser Automationを有効にしていても、**実際にコマン�
 > - コマンド実行の**毎回**、チャット欄で「Connected to internal connection」を選択し「BrowserTab」をONにしてください
 > - これを行わないと、Browser機能が動作せず、公式情報の取得ができません
 
-### Codex CLI版の前提条件
-
-以下が揃っていることを確認してください：
-
-- ✅ **Codex CLI 最新版** がインストール済み
-- ✅ **インターネット接続** がある
-- ✅ **プロンプトファイル** が適切に配置されている
-
-#### Codex CLIのインストール
-
-```bash
-# Codex CLIのインストール（公式サイトから）
-# https://codex.sh/ を参照
-
-# インストール確認
-codex --version
-
-# 初期設定
-codex init
-```
-
 ---
 
 ### インストール
@@ -143,9 +112,7 @@ cd upgrade-analyzer
 
 ## 使い方
 
-### Cursor版
-
-#### 基本的な使い方（推奨）
+### 基本的な使い方（推奨）
 
 1. **Cursorでこのプロジェクトを開く**
 2. **チャット欄でBrowser機能を有効化**:
@@ -161,91 +128,7 @@ cd upgrade-analyzer
 
 #### 実行例
 
-- **Cursor版**:
-  ```text
-  /upgrade-analyzer Next.js 15.4 15.5.3
-  /upgrade-analyzer React 18.2.0 18.3.1
-  /upgrade-analyzer PostgreSQL 14.1 15.0
-  /upgrade-analyzer TypeScript 5.0 5.3
-  ```
-- **Codex CLI版**:
-  ```text
-  /prompts:upgrade-analyzer Next.js 15.4 15.5.3
-  /prompts:upgrade-analyzer React 18.2.0 18.3.1
-  /prompts:upgrade-analyzer PostgreSQL 14.1 15.0
-  /prompts:upgrade-analyzer TypeScript 5.0 5.3
-  ```
-
-### Codex CLI版
-
-> ℹ️ Codex CLIでは `/upgrade-analyzer` のような短縮スラッシュコマンドは定義できません。必ず `/prompts:upgrade-analyzer` を使用してください。
-
-#### 基本的な使い方（推奨）
-
-Codex CLIで以下のコマンドを実行するだけです：
-
 ```text
-/prompts:upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo>
-```
-
-#### 実行例
-
-```text
-# シンプルな使い方
-/prompts:upgrade-analyzer Next.js 15.4 15.5.3
-/prompts:upgrade-analyzer React 18.2.0 18.3.1
-/prompts:upgrade-analyzer PostgreSQL 14.1 15.0
-/prompts:upgrade-analyzer TypeScript 5.0 5.3
-```
-
-#### セットアップ
-
-1. **プロンプトファイルの配置（必須）**:
-   Codex CLIは `/prompts:<プロンプト名>` 形式のコマンドを `~/.codex/prompts/` 配下から読み込みます。以下の手順でグローバル領域にコピーしてください。
-   ```bash
-   # Codex CLIのグローバルプロンプトディレクトリを準備
-   mkdir -p ~/.codex/prompts
-
-   # プロンプトファイルをコピー
-   cp prompts/upgrade-analyzer.md ~/.codex/prompts/
-   ```
-
-2. **Codex CLIで確認**:
-   ```bash
-   # Codex CLIを起動
-   codex
-   
-   # スラッシュコマンドの確認
-   /prompts:upgrade-analyzer
-   ```
-
-詳細な使用方法は [CODEX_USAGE.md](./CODEX_USAGE.md) を参照してください。
-
----
-
-## 共通の使い方
-
-### 基本的な使い方（推奨）
-
-Cursor版またはCodex CLI版で以下のコマンドを実行するだけです：
-
-**Cursor版**:
-```text
-/upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo>
-```
-
-**Codex CLI版**（事前に `~/.codex/prompts/upgrade-analyzer.md` を配置する必要があります）:
-```bash
-# 自動保存付きラッパースクリプト（推奨）
-scripts/run_upgrade_analyzer.sh "<製品名>" "<バージョンFrom>" "<バージョンTo>" "[プロジェクト情報]"
-```
-
-`scripts/run_upgrade_analyzer.sh` は Codex CLI に対して `/prompts:upgrade-analyzer` を実行し、生成されたMarkdownレポートを `reports/` に `{YYYYMMDD}_{HHMMSS}` 形式のタイムスタンプ付きで自動保存します。コマンドを直接入力する場合でもレポートは生成されますが、自動保存を保証するためにスクリプトの利用を推奨します。
-
-#### 実行例
-
-```text
-# シンプルな使い方
 /upgrade-analyzer Next.js 15.4 15.5.3
 /upgrade-analyzer React 18.2.0 18.3.1
 /upgrade-analyzer PostgreSQL 14.1 15.0
@@ -269,49 +152,29 @@ AIが自動的に以下を実行します：
 
 ### プロジェクト情報を指定した使い方（より具体的なレポート）
 
-**⚠️ 事前準備**: Cursor版を使用する場合は、チャット欄で「**Connected to internal connection**」を選択し「**BrowserTab**」をONにしてください。
+**⚠️ 事前準備**: チャット欄で「**Connected to internal connection**」を選択し「**BrowserTab**」をONにしてください。
 
 プロジェクトの特性を指定すると、より実践的で具体的なレポートが生成されます：
 
-- **Cursor版**:
-  ```text
-  /upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo> "プロジェクト情報"
-  ```
-- **Codex CLI版**:
-  ```text
-  /prompts:upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo> "プロジェクト情報"
-  ```
+```text
+/upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo> "プロジェクト情報"
+```
 
 #### 実行例
 
-- **Cursor版**:
-  ```text
-  # Eコマースサイト
-  /upgrade-analyzer Next.js 15.4 15.5.3 "Eコマースサイト、月間100万PV、決済機能とカート機能が重要、SEOとパフォーマンスが最優先"
+```text
+# Eコマースサイト
+/upgrade-analyzer Next.js 15.4 15.5.3 "Eコマースサイト、月間100万PV、決済機能とカート機能が重要、SEOとパフォーマンスが最優先"
 
-  # 社内システム
-  /upgrade-analyzer React 18.2.0 18.3.1 "社内の勤怠管理システム、認証とアクセス制御が重要、ダウンタイム許容度低"
+# 社内システム
+/upgrade-analyzer React 18.2.0 18.3.1 "社内の勤怠管理システム、認証とアクセス制御が重要、ダウンタイム許容度低"
 
-  # 金融系SaaS
-  /upgrade-analyzer PostgreSQL 14.1 15.0 "金融系SaaSのデータベース、トランザクション整合性とセキュリティが最重要、24時間365日稼働、PCI-DSS準拠必須"
+# 金融系SaaS
+/upgrade-analyzer PostgreSQL 14.1 15.0 "金融系SaaSのデータベース、トランザクション整合性とセキュリティが最重要、24時間365日稼働、PCI-DSS準拠必須"
 
-  # 大規模モノリポ
-  /upgrade-analyzer TypeScript 5.0 5.3 "大規模なモノリポ構成、マイクロサービス30個以上、型安全性とビルド速度が重要"
-  ```
-- **Codex CLI版**:
-  ```text
-  # Eコマースサイト
-  /prompts:upgrade-analyzer Next.js 15.4 15.5.3 "Eコマースサイト、月間100万PV、決済機能とカート機能が重要、SEOとパフォーマンスが最優先"
-
-  # 社内システム
-  /prompts:upgrade-analyzer React 18.2.0 18.3.1 "社内の勤怠管理システム、認証とアクセス制御が重要、ダウンタイム許容度低"
-
-  # 金融系SaaS
-  /prompts:upgrade-analyzer PostgreSQL 14.1 15.0 "金融系SaaSのデータベース、トランザクション整合性とセキュリティが最重要、24時間365日稼働、PCI-DSS準拠必須"
-
-  # 大規模モノリポ
-  /prompts:upgrade-analyzer TypeScript 5.0 5.3 "大規模なモノリポ構成、マイクロサービス30個以上、型安全性とビルド速度が重要"
-  ```
+# 大規模モノリポ
+/upgrade-analyzer TypeScript 5.0 5.3 "大規模なモノリポ構成、マイクロサービス30個以上、型安全性とビルド速度が重要"
+```
 
 #### プロジェクト情報を指定するメリット
 
@@ -396,16 +259,12 @@ reports/{製品名}_{バージョンFrom}_to_{バージョンTo}_{YYYYMMDD}_{HHM
 
 #### 2. 全プロジェクトで使う方法
 
-- **Cursor版**  
-  1. Cursor設定を開く（macOS: `Cmd + ,` / Windows: `Ctrl + ,`）  
-  2. 「General」→「Rules for AI」を選択  
-  3. `.cursorrules`ファイルの内容をコピー＆ペースト  
-  4. 保存して閉じる  
+1. Cursor設定を開く（macOS: `Cmd + ,` / Windows: `Ctrl + ,`）  
+2. 「General」→「Rules for AI」を選択  
+3. `.cursorrules`ファイルの内容をコピー＆ペースト  
+4. 保存して閉じる  
 
-  これで全プロジェクトで`/upgrade-analyzer`コマンドが使えます。
-
-- **Codex CLI版**  
-  プロンプトファイルを `~/.codex/prompts/upgrade-analyzer.md` にコピーすると、どのプロジェクトからでも `/prompts:upgrade-analyzer` を利用できます（短縮コマンドはサポートされません）。
+これで全プロジェクトで`/upgrade-analyzer`コマンドが使えます。
 
 #### 3. レポートの活用方法
 
@@ -427,23 +286,15 @@ reports/{製品名}_{バージョンFrom}_to_{バージョンTo}_{YYYYMMDD}_{HHM
 /upgrade-analyzer Next.js 15.0 15.5.3 "プロジェクト情報"
 ```
 
-Codex CLIの場合は、同じパラメータで `/prompts:upgrade-analyzer` を使用してください。
-
 ---
 
 ### 🔧 トラブルシューティング
 
 #### コマンドが認識されない
 
-- **Cursor版**  
-  1. Cursorを再起動してください  
-  2. `.cursorrules`ファイルがプロジェクトルートにあることを確認  
-  3. Cursorで`upgrade-analyzer`ディレクトリを開いていることを確認  
-
-- **Codex CLI版**  
-  1. `/upgrade-analyzer` ではなく `/prompts:upgrade-analyzer` を使用しているか確認  
-  2. `prompts/upgrade-analyzer.md` が現在のプロジェクト内にあるか、もしくは `~/.codex/prompts/` にコピーされているか確認  
-  3. Codex CLIを再起動してプロンプト一覧の読み込みをリフレッシュ
+1. Cursorを再起動してください  
+2. `.cursorrules`ファイルがプロジェクトルートにあることを確認  
+3. Cursorで`upgrade-analyzer`ディレクトリを開いていることを確認
 
 #### Browser機能が動かない
 
@@ -528,20 +379,13 @@ Codex CLIの場合は、同じパラメータで `/prompts:upgrade-analyzer` を
 ```text
 upgrade-analyzer/
 ├── .cursorrules              # Cursor版スラッシュコマンド定義
-├── prompts/                  # Codex CLI版プロンプトファイル
-│   └── upgrade-analyzer.md  # メインプロンプトファイル
 ├── README.md                  # このファイル
-├── CODEX_USAGE.md            # Codex CLI使用方法
-├── MIGRATION_GUIDE.md        # 移行ガイド
-├── scripts/
-│   └── run_upgrade_analyzer.sh # Codex CLI自動保存ラッパー
 ├── templates/
 │   ├── prompt_template.md    # 調査用プロンプトテンプレート
 │   └── report_template.md    # レポート出力テンプレート
 ├── examples/
 │   └── nextjs_15_to_15.5.3.md # 実例（Next.js）
-├── docs/                     # Cursor版設計書
-├── docs-codex/               # Codex版設計書
+├── docs/                     # 設計書
 └── reports/
     └── (調査結果を保存)
 ```
@@ -569,9 +413,7 @@ upgrade-analyzer/
 - [GitHub公開セットアップ](./GITHUB_SETUP.md) - GitHub公開手順
 - [コントリビューションガイド](./CONTRIBUTING.md) - 貢献方法
 - [セキュリティポリシー](./SECURITY.md) - セキュリティ報告
-- [Codex CLI使用方法](./CODEX_USAGE.md) - Codex CLI版の詳細な使用方法
-- [移行ガイド](./MIGRATION_GUIDE.md) - Cursor版からCodex版への移行手順
-- [Codex版設計書](./docs-codex/README.md) - Codex版の詳細な設計書
+- [設計書](./docs/README.md) - 詳細な設計書
 
 ---
 
@@ -585,7 +427,6 @@ upgrade-analyzer/
 
 ## 更新履歴
 
-- **2025-01-28 v4.0**: Codex CLI対応 - Codex CLI版を追加、両環境での利用が可能に
 - **2025-10-08 v3.2**: ドキュメント統合 - README.mdに全情報を集約、より分かりやすく
 - **2025-10-06 v3.1**: プロジェクトコンテキスト対応 - 第4引数でプロジェクト情報を指定可能に
 - **2025-10-06 v3.0**: スラッシュコマンド対応 - `/upgrade-analyzer`コマンドで実行可能に

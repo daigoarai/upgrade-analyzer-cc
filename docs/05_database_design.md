@@ -124,7 +124,7 @@ upgrade-analyzer/
 
 ### 事前準備チェックリスト
 - [ ] **Cursorを最新版にアップデート済み**
-- [ ] **Browser機能がON** になっている（設定で確認）
+- [ ] **Browser機能がON** になっている（Settings → Tools & Integrations → Browser Automationで確認）
 - [ ] **チャット欄の「＋Browser」がON** になっている
 - [ ] バージョンアップ対象の製品名とバージョン番号を把握済み
 
