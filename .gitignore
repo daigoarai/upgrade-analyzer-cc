@@ -20,6 +20,9 @@ reports/*
 *.swo
 *~
 
+# MCP ツール設定
+.serena/
+
 # examples/は保持（参考例として）
 !examples/
 

@@ -1,53 +1,40 @@
 # Upgrade Analyzer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-3.1-green.svg)](https://github.com/daigoarai/upgrade-analyzer/releases)
-[![Cursor](https://img.shields.io/badge/Cursor-Latest-blueviolet.svg)](https://cursor.sh/)
+[![Version](https://img.shields.io/badge/version-4.0-green.svg)](https://github.com/daigoarai/upgrade-analyzer/releases)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Compatible-blueviolet.svg)](https://claude.ai/code)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
 > 🔍 ソフトウェアのバージョンアップ影響分析を自動化するツール  
-> Cursor + Browser機能で公式情報を自動収集・分析
-
----
-
-## 📖 目次
-
-- [概要](#概要)
-- [特徴](#特徴)
-- [セットアップ](#セットアップ)
-- [使い方](#使い方)
-- [実例](#実例)
-- [Tips & トラブルシューティング](#tips--トラブルシューティング)
-- [対応範囲](#対応範囲)
-- [コントリビューション](#コントリビューション)
-- [ライセンス](#ライセンス)
+> Claude Code のスラッシュコマンドで外部情報収集・コードベース静的解析・CVE調査を並列実行
 
 ---
 
 ## 概要
 
-このツールは、ソフトウェアライブラリ・フレームワークのバージョンアップ時の**影響範囲調査**と**テスト戦略立案**を効率化するためのツールです。
+ライブラリ・フレームワークのバージョンアップ時に**インシデントを未然防止**するための影響分析ツールです。
 
-**Cursor + Browser機能**を活用し、AIが公式情報を自動収集・分析して、包括的なレポートを生成します。
+**Claude Code** のサブエージェント並列実行を活用し、以下の3軸を同時に分析します:
 
-### 目的
-
-- バージョンアップ時の見落としを防ぎ、インシデントリスクを低減
-- **Browser機能**により一次情報（公式リリースノート、GitHub、セキュリティ通告）をリアルタイムで収集
-- 再現可能で監査可能な調査プロセスの確立
-- チーム内での知見共有とナレッジベース化
+| 軸 | 内容 |
+|---|---|
+| 外部情報 | 公式changelog・リリースノート・GitHub diff |
+| セキュリティ | CVE/OSV/GitHub Security Advisories + Reachability判定 |
+| 実コード分析 | プロジェクト内の使用箇所検索・TypeScript型チェック |
 
 ---
 
 ## 特徴
 
-- 🔍 **体系的な差分分析**: Breaking Changes、バグ修正、機能追加を分類整理
-- 🎯 **優先度付きテスト戦略**: 影響度に応じた3段階のテスト観点提示
-- 📊 **リスクアセスメント**: 発生確率と影響度を考慮したリスク評価
-- 🔗 **推移的依存関係チェック**: 依存の依存（3階層まで）の既知問題も調査
-- 🌐 **クロスブラウザ互換性重視**: Windows/macOS/iOS/Android全プラットフォーム対応
-- 📚 **出典管理**: すべての情報に公式ソースのURL・日付を記載
-- 🎨 **プロジェクト最適化**: プロジェクト情報を指定すると、そのプロジェクトに特化した分析を提供
+- **ハイブリッド分析**: changelog情報 × 実コード使用箇所のマッチングで「本当に壊れる箇所」を特定
+- **並列実行**: 3つのサブエージェントが同時に調査（外部情報 / セキュリティ / コードベース）
+- **外部LLMクロス検証**: MCP 経由で Codex（OpenAI）と Gemini（Google）に同一changelogを渡し、3LLMの結果を突合して Breaking Changes の信頼度を判定（MCP登録がない場合は自動スキップ）
+- **Reachability判定**: 検出したCVEが自社コードで実際に使われているかを確認（false positive削減）
+- **TypeScript静的チェック**: `tsc --noEmit` でコンパイルエラーを事前検出
+- **WebFetchリトライ**: changelog取得失敗時に代替URLへ自動フォールバック（最大3回 + 代替URL）
+- **間接依存の追跡**: `package-lock.json` / `yarn.lock` の transitive dependencies も調査
+- **テスト影響範囲**: 影響ファイルに対応する具体的なテストファイルを列挙
+- **インシデント防止チェックリスト**: リリース前の確認項目を自動生成
 
 ---
 
@@ -55,322 +42,175 @@
 
 ### 前提条件
 
-以下が揃っていることを確認してください：
-
-- ✅ **Cursor 最新版** がインストール済み
-- ✅ **Browser 機能が ON** になっている（実行の度、毎回確認下さい）
-
-#### Browser機能の確認方法
-
-**Step 1: SettingsでBrowser Automationを有効化**
-
-**macOS の場合**:
-1. Cursorを開き、メニューバーの「Cursor」→「Settings…」（または `⌘ ,`）を選択
-2. 左側メニューから **Tools & Integrations** を開く
-3. 「Browser Automation」のトグルが **Enabled** になっていることを確認
-4. ステータスが「Ready」になるまで数秒待ち、必要に応じて「Enable Browser Automation」をクリック
-
-**Windows の場合**:
-1. Cursorを開き、メニューバーの「File」→「Settings」（または `Ctrl + ,`）を選択
-2. 左側メニューから **Tools & Integrations** を開く
-3. 「Browser Automation」のトグルが **Enabled** になっていることを確認
-4. ステータスが「Ready」になるまで数秒待ち、表示が「Needs setup」や「Disabled」の場合は「Enable Browser Automation」をクリック
-
-> ショートカット: コマンドパレット（`⌘/Ctrl + ⇧ + P`）で「Browser Automation: Open Setup」や「Browser Automation: Enable」を選択すると設定画面に移動できます。
-
-**Step 2: チャット欄でBrowser機能を有効化（実行時）**
-
-SettingsでBrowser Automationを有効にしていても、**実際にコマンドを実行する際には、チャット欄で以下を設定する必要があります**：
-
-1. チャット欄上部の接続設定で「**Connected to internal connection**」を選択
-2. 「**BrowserTab**」をONにする
-
-> ⚠️ **重要**:
-> - SettingsでBrowser Automationを有効にしただけでは不十分です
-> - コマンド実行の**毎回**、チャット欄で「Connected to internal connection」を選択し「BrowserTab」をONにしてください
-> - これを行わないと、Browser機能が動作せず、公式情報の取得ができません
-
----
+- ✅ **Claude Code** がインストール済み（`npm install -g @anthropic-ai/claude-code`）
+- ✅ Anthropic API キーが設定されている
 
 ### インストール
-
-#### 方法1: Gitで取得
 
 ```bash
 git clone https://github.com/daigoarai/upgrade-analyzer.git
 cd upgrade-analyzer
 ```
 
-#### 方法2: ZIPでダウンロード
+### スラッシュコマンドの登録
 
-1. [リリースページ](https://github.com/daigoarai/upgrade-analyzer/releases)からZIPをダウンロード
-2. 展開して`upgrade-analyzer`ディレクトリに配置
+`upgrade-analyzer.md` を Claude Code のコマンドディレクトリにコピーします:
 
-これだけで準備完了です。特別なインストールは不要です。
+```bash
+# ユーザー全体で使えるようにする場合（推奨）
+cp upgrade-analyzer.md ~/.claude/commands/upgrade-analyzer.md
+
+# プロジェクトのみで使う場合
+mkdir -p .claude/commands
+cp upgrade-analyzer.md .claude/commands/upgrade-analyzer.md
+```
+
+これだけで準備完了です。
+
+### MCP セットアップ（クロス検証機能 — 任意・推奨）
+
+クロス検証機能は、**Claude Code に MCP 登録された Codex または Gemini** を使います。
+APIキーの直接設定は不要です。会社のサブスクリプション契約を MCP 経由で利用します。
+
+#### Codex（OpenAI）
+
+Claude Code の **Codex プラグイン**をインストールすれば自動で使えます:
+
+```bash
+# Codex プラグインのインストール（未インストールの場合）
+claude /install-plugin codex
+
+# 登録確認
+ls ~/.claude/plugins/cache/openai-codex/
+```
+
+インストール済みであれば追加設定は不要です。`/codex` または `codex:codex-rescue` サブエージェントとして動作します。
+
+#### Gemini（Google）
+
+Google の **Gemini CLI** を MCP サーバーとして登録します:
+
+```bash
+# Gemini CLI のインストール（未インストールの場合）
+npm install -g @google/gemini-cli
+
+# Claude Code の MCP サーバーとして登録
+# ※ サーバー名は "gemini" に統一することを推奨（ツール検出に使用）
+claude mcp add gemini -- gemini mcp serve
+```
+
+登録後に動作確認:
+
+```bash
+claude mcp list
+# 出力例: gemini  gemini mcp serve
+```
+
+> **注意**: `gemini mcp serve` サブコマンドの名称は Gemini CLI のバージョンにより異なる場合があります。  
+> 正確なコマンドは `gemini --help` で確認してください。
+
+#### 登録状況の確認
+
+```bash
+claude mcp list
+```
+
+| 表示 | 状態 |
+|------|------|
+| `codex` が含まれる行 | Codex MCP 使用可能 |
+| `gemini` が含まれる行 | Gemini MCP 使用可能 |
+| どちらも表示されない | クロス検証スキップ（分析は続行） |
+
+> **クロス検証なし（MCP未登録）でも動作します。** クロス検証は精度向上のオプション機能です。  
+> MCP未登録の場合は自動的にスキップされ、Claude 単独で分析します。
 
 ---
 
 ## 使い方
 
-### 基本的な使い方（推奨）
-
-1. **Cursorでこのプロジェクトを開く**
-2. **チャット欄でBrowser機能を有効化**:
-   - チャット欄上部の接続設定で「**Connected to internal connection**」を選択
-   - 「**BrowserTab**」をONにする
-3. **以下のコマンドを実行**:
+### 基本（外部情報のみ）
 
 ```text
-/upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo>
+/upgrade-analyzer <パッケージ名> <バージョンFrom> <バージョンTo>
 ```
-
-> ⚠️ **重要**: SettingsでBrowser Automationを有効にしていても、**実際にコマンドを実行する際には、チャット欄で「Connected to internal connection」を選択し「BrowserTab」をONにする必要があります**。これを行わないと、Browser機能が動作しません。
-
-#### 実行例
 
 ```text
-/upgrade-analyzer Next.js 15.4 15.5.3
-/upgrade-analyzer React 18.2.0 18.3.1
-/upgrade-analyzer PostgreSQL 14.1 15.0
-/upgrade-analyzer TypeScript 5.0 5.3
+/upgrade-analyzer next 14.0.0 15.3.2
+/upgrade-analyzer axios 1.6.0 1.8.4
+/upgrade-analyzer typescript 5.0.0 5.8.3
 ```
 
-AIが自動的に以下を実行します：
-
-1. ✅ 公式リリースノートを検索
-2. ✅ GitHub Issuesを調査（推移的依存関係含む）
-3. ✅ セキュリティアドバイザリを確認
-4. ✅ クロスブラウザ互換性を全プラットフォームで調査
-5. ✅ 依存関係の既知問題を深掘り調査
-6. ✅ 現在の日付を動的に取得してレポート生成
-7. ✅ 完全なMarkdownレポートを生成
-8. ✅ `reports/`ディレクトリに自動保存
-
-**所要時間**: 約2-5分（依存関係の深掘り調査により若干延長）
-
----
-
-### プロジェクト情報を指定した使い方（より具体的なレポート）
-
-**⚠️ 事前準備**: チャット欄で「**Connected to internal connection**」を選択し「**BrowserTab**」をONにしてください。
-
-プロジェクトの特性を指定すると、より実践的で具体的なレポートが生成されます：
+### 完全版（実コード分析 + 型チェック込み）
 
 ```text
-/upgrade-analyzer <製品名> <バージョンFrom> <バージョンTo> "プロジェクト情報"
+/upgrade-analyzer <パッケージ名> <バージョンFrom> <バージョンTo> <プロジェクトパス>
 ```
-
-#### 実行例
 
 ```text
-# Eコマースサイト
-/upgrade-analyzer Next.js 15.4 15.5.3 "Eコマースサイト、月間100万PV、決済機能とカート機能が重要、SEOとパフォーマンスが最優先"
-
-# 社内システム
-/upgrade-analyzer React 18.2.0 18.3.1 "社内の勤怠管理システム、認証とアクセス制御が重要、ダウンタイム許容度低"
-
-# 金融系SaaS
-/upgrade-analyzer PostgreSQL 14.1 15.0 "金融系SaaSのデータベース、トランザクション整合性とセキュリティが最重要、24時間365日稼働、PCI-DSS準拠必須"
-
-# 大規模モノリポ
-/upgrade-analyzer TypeScript 5.0 5.3 "大規模なモノリポ構成、マイクロサービス30個以上、型安全性とビルド速度が重要"
+/upgrade-analyzer next 14.0.0 15.3.2 /Users/me/myapp
+/upgrade-analyzer axios 1.6.0 1.8.4 /Users/me/myapp
 ```
 
-#### プロジェクト情報を指定するメリット
+プロジェクトパスを指定すると:
+- `src/` 配下のimport箇所を全検索
+- 使用しているAPIを列挙
+- Breaking Changes × 使用箇所を照合して「このファイルのこの行が壊れる」まで特定
+- TypeScript プロジェクトの場合は `tsc --noEmit` を実行
 
-- ✅ **カスタマイズされたリスク評価**: プロジェクトのビジネス要件に応じた評価
-- ✅ **特化したテスト観点**: プロジェクトの重要機能に焦点を当てたテスト戦略
-- ✅ **適切なKPI設定**: プロジェクトの目標に合わせた成功指標
-- ✅ **実践的な推奨事項**: プロジェクト固有の実装計画
-
-#### プロジェクト情報に含めると良い内容
-
-- **プロジェクトタイプ**: Eコマース、SaaS、社内ツール、API等
-- **規模**: トラフィック量、ユーザー数、データ量
-- **重要機能**: ビジネスクリティカルな機能（決済、認証、データ処理等）
-- **優先事項**: パフォーマンス、セキュリティ、SEO、可用性等
-- **制約条件**: ダウンタイム許容度、コンプライアンス要件
-
----
-
-### カスタマイズ方法（上級者向け）
-
-プロンプトをカスタマイズしたい場合は、テンプレートを直接編集できます：
-
-#### Step 1: テンプレートを開く
-
-```bash
-open templates/prompt_template.md
-```
-
-#### Step 2: 【変数設定】を編集
-
-プロンプトの先頭にある3行だけを編集します：
+### プロジェクト情報付き
 
 ```text
----
-【変数設定】
-製品名: Next.js          ← ここに製品名を入力
-バージョンFrom: 15.4     ← ここに現在のバージョンを入力
-バージョンTo: 15.5.3     ← ここにアップグレード先のバージョンを入力
----
-```
-
-それ以外の本文は変更不要です。
-
-#### Step 3: Cursorチャットに貼り付けて実行
-
-編集したプロンプト全体をコピーして、Cursorチャットに貼り付けて実行します。
-
----
-
-## 実例
-
-実際の調査結果を確認できます：
-
-```bash
-# Next.jsの実例を確認
-cat examples/nextjs_15_to_15.5.3.md
-```
-
-このファイルには以下が含まれています：
-
-- 詳細な変更点の分類
-- 優先度付きテスト観点
-- 具体的な検証コマンド
-- リスク評価と対応策
-- 成功基準とKPI
-
----
-
-## Tips & トラブルシューティング
-
-### 💡 使い方のヒント
-
-#### 1. レポートの保存場所
-
-生成されたレポートは`reports/`ディレクトリに以下の形式で保存されます：
-
-```
-reports/{製品名}_{バージョンFrom}_to_{バージョンTo}_{YYYYMMDD}_{HHMMSS}.md
-```
-
-例：`reports/nextjs_15.4_to_15.5.3_20251008_143022.md`
-
-#### 2. 全プロジェクトで使う方法
-
-1. Cursor設定を開く（macOS: `Cmd + ,` / Windows: `Ctrl + ,`）  
-2. 「General」→「Rules for AI」を選択  
-3. `.cursorrules`ファイルの内容をコピー＆ペースト  
-4. 保存して閉じる  
-
-これで全プロジェクトで`/upgrade-analyzer`コマンドが使えます。
-
-#### 3. レポートの活用方法
-
-生成されたレポートは以下の用途で活用できます：
-
-- **計画段階**: バージョンアップの影響範囲見積もり
-- **実装段階**: 具体的な修正箇所の特定
-- **テスト段階**: テストケース設計と優先度決定
-- **レビュー段階**: 変更内容のチーム共有
-- **ドキュメント**: 履歴として保存・参照
-
-#### 4. 複数バージョンの比較
-
-大きなバージョンアップの場合は、段階的に分析することをおすすめします：
-
-```text
-# 例：Next.js 14 → 15.5.3の場合
-/upgrade-analyzer Next.js 14.0 15.0 "プロジェクト情報"
-/upgrade-analyzer Next.js 15.0 15.5.3 "プロジェクト情報"
+/upgrade-analyzer next 14.0.0 15.3.2 /Users/me/myapp "決済・認証機能に使用、24h稼働"
 ```
 
 ---
 
-### 🔧 トラブルシューティング
+## 生成されるレポートの構成
 
-#### コマンドが認識されない
-
-1. Cursorを再起動してください  
-2. `.cursorrules`ファイルがプロジェクトルートにあることを確認  
-3. Cursorで`upgrade-analyzer`ディレクトリを開いていることを確認
-
-#### Browser機能が動かない
-
-**解決方法**:
-
-1. **チャット欄でBrowser機能を有効化しているか確認**:
-   - チャット欄上部の接続設定で「**Connected to internal connection**」を選択しているか確認
-   - 「**BrowserTab**」がONになっているか確認
-   - ⚠️ **重要**: SettingsでBrowser Automationを有効にしていても、チャット欄でこの設定を行わないとBrowser機能は動作しません
-2. Settings → **Tools & Integrations** で「Browser Automation」のトグルが **Enabled** か確認（必要なら「Enable Browser Automation」を実行）
-3. ステータスが「Ready」以外の場合は一度「Disable」→「Enable」で再初期化し、Cursorを再起動
-4. Cursorを最新版にアップデート（自動更新が保留の場合は一度終了して再起動）
-
-#### レポートが生成されない
-
-**解決方法**:
-1. 製品名とバージョン番号が正しいか確認
-2. インターネット接続を確認
-3. 数分待ってから再度試す（タイムアウトの可能性）
-
-#### プロジェクト情報が反映されない
-
-**解決方法**:
-1. プロジェクト情報を`""`で囲んでいるか確認
-2. 情報が具体的か確認（例：「Webサイト」ではなく「Eコマースサイト、月間100万PV」）
-
-#### エラーが発生する
-
-**解決方法**:
-1. Cursorのエラーメッセージを確認
-2. バージョン番号の形式を確認（例：`18.2.0`）
-3. 特殊文字が含まれていないか確認
+| セクション | 内容 |
+|---------|------|
+| エグゼクティブサマリー | 総合リスク評価・アップグレード推奨度（changelog取得失敗時は再実施警告を冒頭に表示） |
+| メタ情報 | 中間バージョン一覧・分析範囲・クロス検証実施状況・件数サマリー |
+| インシデントリスク評価 | リスク種別×発生確率×影響度の表形式評価 |
+| Breaking Changes詳細 | **信頼度ラベル付き**で全件記載（✅高信頼 / 🟡中信頼 / ⚠️要確認 / 🔴Agent A見落とし） |
+| セキュリティ分析 | CVE詳細 + Reachability判定（使っているAPIか確認） |
+| コードベース影響箇所一覧 | ファイル・使用API・Breaking Change影響・テストファイルの対応表 |
+| テスト戦略 | 必須🔴 / 推奨🟡 / 回帰🟢 の優先度別テストファイル列挙 |
+| マイグレーション手順 | ファイル別・作業順の修正手順 |
+| インシデント防止チェックリスト | リリース前確認項目（コピー可） |
+| 推移的依存関係の影響 | 間接依存での変化 |
+| 参考情報 | 調査URL一覧（発行日付き） |
 
 ---
 
-### 📊 レポートの読み方
+## レポートの保存先
 
-生成されたレポートには以下のセクションが含まれます：
+| 状況 | 保存先 |
+|------|--------|
+| プロジェクトパスを指定した場合 | `{プロジェクトパス}/reports/` |
+| プロジェクトパスを指定しない場合 | `./reports/`（Claude Code を起動したカレントディレクトリ） |
 
-1. **メタ情報**: 調査日、バージョン分類、重要度
-2. **プロジェクト概要**（指定した場合）: プロジェクト特性の要約
-3. **差分サマリ**: プロジェクトへの影響度評価
-4. **主要変更点**: Breaking Changes、セキュリティ修正、バグ修正等
-5. **依存関係の既知問題**: ブラウザ互換性を含む既知の問題
-6. **影響範囲の詳細分析**: コード、設定、ビルド、実行環境への影響
-7. **テスト戦略**: 優先度別・プラットフォーム別のテスト観点
-8. **リスクアセスメント**: リスク項目と対応策
-9. **成功基準とKPI**: 測定可能な指標
-10. **推奨アクションプラン**: 段階的な実施計画
-11. **参考情報**: 公式リンクとドキュメント
+`reports/` ディレクトリが存在しない場合は自動作成されます。
 
-#### 優先度の見方
+ファイル名: `{パッケージ名}_{From}_to_{To}_{YYYYMMDD}_{HHMMSS}.md`
 
-- 🔴 **高**: 必須対応、ビジネスクリティカル
-- 🟡 **中**: 推奨対応、計画的に実施
-- 🟢 **低**: 将来的に検討、影響は限定的
+例: `reports/next_14.0.0_to_15.3.2_20260507_143022.md`
+
+> **Tips**: このリポジトリ内でレポートを管理したい場合は、upgrade-analyzer ディレクトリで Claude Code を起動するか、プロジェクトパスに upgrade-analyzer のパスを指定してください。
 
 ---
 
-## 対応範囲
+## 旧バージョン（Cursor版）との比較
 
-### 現在サポート
-
-- **JavaScript/TypeScript系**: Next.js, React, Node.js, Express
-- **フレームワーク**: Spring Boot, Django, Rails
-- **データベース**: PostgreSQL, MySQL, MongoDB
-- **インフラ**: Docker, Kubernetes
-- **ビルドツール**: Webpack, Vite, Turbopack
-
-### 今後追加予定
-
-- クラウドサービス（AWS, GCP, Azure）
-- モバイルフレームワーク（React Native, Flutter）
-- 各種SaaSツール
-
-実際には、**公式情報が取得できる任意のソフトウェア**に対応可能です。
+| 観点 | v3.x (Cursor + Browser) | v4.x (Claude Code) |
+|------|------------------------|---------------------|
+| 実行方法 | Cursor チャット + BrowserTab ON | `/upgrade-analyzer` スラッシュコマンド |
+| コード分析 | なし（外部情報のみ） | プロジェクトパス指定でimport箇所全検索 |
+| 実行方式 | 単一エージェント逐次 | 3エージェント並列（高速化） |
+| セキュリティ | リリースノート記載分のみ | CVE/OSV + Reachability判定 |
+| 型チェック | なし | `tsc --noEmit` 実行 |
+| 間接依存 | 限定的 | lock file解析で transitive 追跡 |
+| セットアップ | BrowserTab の毎回ON設定が必要 | 初回コマンドコピーのみ |
 
 ---
 
@@ -378,42 +218,50 @@ reports/{製品名}_{バージョンFrom}_to_{バージョンTo}_{YYYYMMDD}_{HHM
 
 ```text
 upgrade-analyzer/
-├── .cursorrules              # Cursor版スラッシュコマンド定義
+├── upgrade-analyzer.md        # Claude Code スラッシュコマンド定義（メイン）
 ├── README.md                  # このファイル
 ├── templates/
-│   ├── prompt_template.md    # 調査用プロンプトテンプレート
-│   └── report_template.md    # レポート出力テンプレート
+│   └── prompt_template.md    # 旧Cursor版プロンプトテンプレート（参考用）
 ├── examples/
-│   └── nextjs_15_to_15.5.3.md # 実例（Next.js）
-├── docs/                     # 設計書
+│   └── nextjs_15_to_15.5.3.md # レポートサンプル
+├── docs/                      # 設計書
+├── docs-codex/                # Codexレビュー記録
 └── reports/
-    └── (調査結果を保存)
+    └── (生成されたレポートが保存される)
 ```
+
+---
+
+## 精度の限界と注意事項
+
+1. **changelog未整備パッケージ**: リリースノートが不完全な場合、GitHubのcommit diffで補完するが精度は落ちる
+2. **LLMのfalse negative**: 「影響なし」の誤判定があり得る。「影響なし」と判断した根拠を必ず確認すること
+3. **プロジェクトパス未指定時**: 外部情報のみの分析となり、実コード影響は手動確認が必要
+4. **semverへの過信禁止**: patchバージョンでも設定系・バリデーション系は挙動が変わる事例あり
+5. **最終判断は人間が行う**: このツールはサポートツール。アップグレード可否の最終決定は開発者が行うこと
+
+---
+
+## 対応パッケージ
+
+公式情報（changelog・GitHub releases）が取得できる任意のnpmパッケージに対応。
+
+特に実績のある領域:
+- **フロントエンド**: Next.js, React, Vue, Nuxt, Remix
+- **ランタイム・言語**: Node.js, TypeScript
+- **HTTP/API**: axios, fetch-based libraries
+- **データベースクライアント**: Prisma, Drizzle, pg
+- **認証**: NextAuth, Passport
+- **ビルドツール**: Webpack, Vite, ESBuild
 
 ---
 
 ## コントリビューション
 
-コントリビューションを歓迎します！
-
-### 貢献方法
-
-- 🐛 **バグ報告**: Issueを作成
-- 💡 **新機能の提案**: Issueで議論
-- 📖 **ドキュメント改善**: Pull Request歓迎
-- 📊 **サンプルレポートの追加**: `examples/`に追加
-- 🌍 **翻訳**: 英語版の作成など
-
-詳細は [CONTRIBUTING.md](./CONTRIBUTING.md) をご覧ください。
-
----
-
-## 🔗 関連リンク
-
-- [GitHub公開セットアップ](./GITHUB_SETUP.md) - GitHub公開手順
-- [コントリビューションガイド](./CONTRIBUTING.md) - 貢献方法
-- [セキュリティポリシー](./SECURITY.md) - セキュリティ報告
-- [設計書](./docs/README.md) - 詳細な設計書
+- 🐛 バグ報告: Issue を作成
+- 💡 新機能提案: Issue で議論
+- 📊 サンプルレポート追加: `examples/` に追加
+- 📖 ドキュメント改善: Pull Request 歓迎
 
 ---
 
@@ -421,57 +269,20 @@ upgrade-analyzer/
 
 [MIT License](./LICENSE)
 
-このプロジェクトはMITライセンスの下で公開されています。
-
 ---
 
 ## 更新履歴
 
-- **2025-11-11 v2.1**: 優先度の定義明確化、優先度設定の根拠明示
-- **2025-10-08 v2.0**: Cursor + Browser機能を前提とした構成に変更、レポート構成の最適化 - 影響分析とテスト戦略に特化、スラッシュコマンド対応 - `/upgrade-analyzer`コマンドで実行可能に、プロジェクトコンテキスト対応 - 第4引数でプロジェクト情報を指定可能に
+- **2026-05-08 v4.1**: 外部LLMクロス検証機能を追加（MCP経由でCodex・Geminiに並列依頼し信頼度ラベルを付与）。WebFetchリトライロジック強化（最大3回 + 代替URLフォールバック + 全失敗時ユーザー警告）
+- **2026-05-07 v4.0**: Claude Code 対応に全面移行。3エージェント並列実行・実コードベース静的解析・CVE Reachability判定・TypeScript型チェック・インシデント防止チェックリストを追加
+- **2025-11-11 v3.1**: 優先度の定義明確化、優先度設定の根拠明示
+- **2025-10-08 v3.0**: Cursor + Browser機能を前提とした構成に変更
 - **2025-10-03 v1.0**: 初版作成
 
 ---
 
-## ⚠️ 免責事項
+## 免責事項
 
-**重要**: このツールは**サポートツール**であり、完全な調査の代替ではありません。
-
-### このツールの位置づけ
-
-- ✅ **補助ツール**: 調査作業を効率化し、見落としを防ぐ
-- ✅ **参考情報**: 公式情報を基にした分析レポートの提供
-- ✅ **効率化**: 手動調査の時間を大幅短縮
-
-### このツールでは代替できないもの
-
-- ❌ **完全な調査**: プロジェクト固有の詳細な影響分析
-- ❌ **最終判断**: アップグレードの可否決定
-- ❌ **責任**: アップグレード実施による問題への責任
-- ❌ **保証**: レポートの完全性・正確性の保証
-
-### 推奨される使用フロー
-
-1. **このツールで概要把握** → レポートを確認
-2. **公式ドキュメントの詳細確認** → マイグレーションガイド等を精読
-3. **プロジェクト固有の調査** → 独自のテスト・検証を実施
-4. **段階的なアップグレード** → 開発環境 → ステージング → 本番環境
-5. **継続的な監視** → アップグレード後の動作確認
-
-### 責任の所在
-
-- **開発者**: 最終的なアップグレード判断と実施
-- **このツール**: 調査効率化のサポートのみ
-- **公式ドキュメント**: 正確な技術情報の提供
-
-**このツールを使用する前に、必ず公式ドキュメントとマイグレーションガイドを確認してください。**
-
----
-
-## 💬 サポート
-
-質問やフィードバックがある場合は、[Issue](https://github.com/daigoarai/upgrade-analyzer/issues)を作成してください。
-
----
-
-**最終更新**: 2025-11-11
+このツールは調査効率化のサポートツールです。レポートの完全性・正確性を保証するものではありません。
+アップグレードの最終判断と実施責任は開発者にあります。
+必ず公式ドキュメントとマイグレーションガイドを併せて確認してください。
