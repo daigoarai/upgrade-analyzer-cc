@@ -1,7 +1,7 @@
 # Upgrade Analyzer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-4.0-green.svg)](https://github.com/daigoarai/upgrade-analyzer/releases)
+[![Version](https://img.shields.io/badge/version-4.0-green.svg)](https://github.com/daigoarai/upgrade-analyzer-cc/releases)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Compatible-blueviolet.svg)](https://claude.ai/code)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
@@ -16,11 +16,11 @@
 
 **Claude Code** のサブエージェント並列実行を活用し、以下の3軸を同時に分析します:
 
-| 軸 | 内容 |
-|---|---|
-| 外部情報 | 公式changelog・リリースノート・GitHub diff |
+| 軸      | 内容                                                  |
+| ------ | --------------------------------------------------- |
+| 外部情報   | 公式changelog・リリースノート・GitHub diff                     |
 | セキュリティ | CVE/OSV/GitHub Security Advisories + Reachability判定 |
-| 実コード分析 | プロジェクト内の使用箇所検索・TypeScript型チェック |
+| 実コード分析 | プロジェクト内の使用箇所検索・TypeScript型チェック                      |
 
 ---
 
@@ -28,7 +28,7 @@
 
 - **ハイブリッド分析**: changelog情報 × 実コード使用箇所のマッチングで「本当に壊れる箇所」を特定
 - **並列実行**: 3つのサブエージェントが同時に調査（外部情報 / セキュリティ / コードベース）
-- **外部LLMクロス検証**: MCP 経由で Codex（OpenAI）と Gemini（Google）に同一changelogを渡し、3LLMの結果を突合して Breaking Changes の信頼度を判定（MCP登録がない場合は自動スキップ）
+- **外部LLMクロス検証**: MCP 経由で Codex（OpenAI）に同一changelogを渡し、結果を突合して Breaking Changes の信頼度を判定（MCP登録がない場合は自動スキップ）
 - **Reachability判定**: 検出したCVEが自社コードで実際に使われているかを確認（false positive削減）
 - **TypeScript静的チェック**: `tsc --noEmit` でコンパイルエラーを事前検出
 - **WebFetchリトライ**: changelog取得失敗時に代替URLへ自動フォールバック（最大3回 + 代替URL）
@@ -43,21 +43,37 @@
 ### 前提条件
 
 - ✅ **Claude Code** がインストール済み（`npm install -g @anthropic-ai/claude-code`）
-- ✅ Anthropic API キーが設定されている
+- ✅ Claude Code のサブスクリプション（Pro/Teams/Enterprise）、または Anthropic API キーが設定されている
 
 ### インストール
 
 ```bash
-git clone https://github.com/daigoarai/upgrade-analyzer.git
-cd upgrade-analyzer
+git clone https://github.com/daigoarai/upgrade-analyzer-cc.git
+cd upgrade-analyzer-cc
 ```
 
 ### スラッシュコマンドの登録
 
-`upgrade-analyzer.md` を Claude Code のコマンドディレクトリにコピーします:
+#### プラグインインストール（推奨）
+
+Claude Code のプラグインシステムを使うと 1 コマンドで完了します。コマンドとエージェントが同時に登録され、`claude plugin update --all` で将来の更新も自動化できます。
 
 ```bash
-# ユーザー全体で使えるようにする場合（推奨）
+claude plugin add github:daigoarai/upgrade-analyzer-cc
+```
+
+インストール後に有効化:
+
+```bash
+/reload-plugins
+```
+
+#### 手動コピー（後方互換）
+
+プラグインが使えない環境では従来通り手動でコピーします:
+
+```bash
+# ユーザー全体で使えるようにする場合
 cp upgrade-analyzer.md ~/.claude/commands/upgrade-analyzer.md
 
 # プロジェクトのみで使う場合
@@ -65,12 +81,10 @@ mkdir -p .claude/commands
 cp upgrade-analyzer.md .claude/commands/upgrade-analyzer.md
 ```
 
-これだけで準備完了です。
-
 ### MCP セットアップ（クロス検証機能 — 任意・推奨）
 
-クロス検証機能は、**Claude Code に MCP 登録された Codex または Gemini** を使います。
-APIキーの直接設定は不要です。会社のサブスクリプション契約を MCP 経由で利用します。
+クロス検証機能は、**Claude Code に MCP 登録された Codex** を使います。  
+現時点では Codex のみ対応しています（Gemini は公式 MCP サーバー未提供のため対象外）。
 
 #### Codex（OpenAI）
 
@@ -86,40 +100,16 @@ ls ~/.claude/plugins/cache/openai-codex/
 
 インストール済みであれば追加設定は不要です。`/codex` または `codex:codex-rescue` サブエージェントとして動作します。
 
-#### Gemini（Google）
-
-Google の **Gemini CLI** を MCP サーバーとして登録します:
-
-```bash
-# Gemini CLI のインストール（未インストールの場合）
-npm install -g @google/gemini-cli
-
-# Claude Code の MCP サーバーとして登録
-# ※ サーバー名は "gemini" に統一することを推奨（ツール検出に使用）
-claude mcp add gemini -- gemini mcp serve
-```
-
-登録後に動作確認:
-
-```bash
-claude mcp list
-# 出力例: gemini  gemini mcp serve
-```
-
-> **注意**: `gemini mcp serve` サブコマンドの名称は Gemini CLI のバージョンにより異なる場合があります。  
-> 正確なコマンドは `gemini --help` で確認してください。
-
 #### 登録状況の確認
 
 ```bash
 claude mcp list
 ```
 
-| 表示 | 状態 |
-|------|------|
-| `codex` が含まれる行 | Codex MCP 使用可能 |
-| `gemini` が含まれる行 | Gemini MCP 使用可能 |
-| どちらも表示されない | クロス検証スキップ（分析は続行） |
+| 表示             | 状態               |
+| -------------- | ---------------- |
+| `codex` が含まれる行 | Codex MCP 使用可能   |
+| 表示されない         | クロス検証スキップ（分析は続行） |
 
 > **クロス検証なし（MCP未登録）でも動作します。** クロス検証は精度向上のオプション機能です。  
 > MCP未登録の場合は自動的にスキップされ、Claude 単独で分析します。
@@ -152,6 +142,7 @@ claude mcp list
 ```
 
 プロジェクトパスを指定すると:
+
 - `src/` 配下のimport箇所を全検索
 - 使用しているAPIを列挙
 - Breaking Changes × 使用箇所を照合して「このファイルのこの行が壊れる」まで特定
@@ -167,27 +158,27 @@ claude mcp list
 
 ## 生成されるレポートの構成
 
-| セクション | 内容 |
-|---------|------|
-| エグゼクティブサマリー | 総合リスク評価・アップグレード推奨度（changelog取得失敗時は再実施警告を冒頭に表示） |
-| メタ情報 | 中間バージョン一覧・分析範囲・クロス検証実施状況・件数サマリー |
-| インシデントリスク評価 | リスク種別×発生確率×影響度の表形式評価 |
+| セクション              | 内容                                                      |
+| ------------------ | ------------------------------------------------------- |
+| エグゼクティブサマリー        | 総合リスク評価・アップグレード推奨度（changelog取得失敗時は再実施警告を冒頭に表示）          |
+| メタ情報               | 中間バージョン一覧・分析範囲・クロス検証実施状況・件数サマリー                         |
+| インシデントリスク評価        | リスク種別×発生確率×影響度の表形式評価                                    |
 | Breaking Changes詳細 | **信頼度ラベル付き**で全件記載（✅高信頼 / 🟡中信頼 / ⚠️要確認 / 🔴Agent A見落とし） |
-| セキュリティ分析 | CVE詳細 + Reachability判定（使っているAPIか確認） |
-| コードベース影響箇所一覧 | ファイル・使用API・Breaking Change影響・テストファイルの対応表 |
-| テスト戦略 | 必須🔴 / 推奨🟡 / 回帰🟢 の優先度別テストファイル列挙 |
-| マイグレーション手順 | ファイル別・作業順の修正手順 |
-| インシデント防止チェックリスト | リリース前確認項目（コピー可） |
-| 推移的依存関係の影響 | 間接依存での変化 |
-| 参考情報 | 調査URL一覧（発行日付き） |
+| セキュリティ分析           | CVE詳細 + Reachability判定（使っているAPIか確認）                     |
+| コードベース影響箇所一覧       | ファイル・使用API・Breaking Change影響・テストファイルの対応表                |
+| テスト戦略              | 必須🔴 / 推奨🟡 / 回帰🟢 の優先度別テストファイル列挙                       |
+| マイグレーション手順         | ファイル別・作業順の修正手順                                          |
+| インシデント防止チェックリスト    | リリース前確認項目（コピー可）                                         |
+| 推移的依存関係の影響         | 間接依存での変化                                                |
+| 参考情報               | 調査URL一覧（発行日付き）                                          |
 
 ---
 
 ## レポートの保存先
 
-| 状況 | 保存先 |
-|------|--------|
-| プロジェクトパスを指定した場合 | `{プロジェクトパス}/reports/` |
+| 状況               | 保存先                                       |
+| ---------------- | ----------------------------------------- |
+| プロジェクトパスを指定した場合  | `{プロジェクトパス}/reports/`                     |
 | プロジェクトパスを指定しない場合 | `./reports/`（Claude Code を起動したカレントディレクトリ） |
 
 `reports/` ディレクトリが存在しない場合は自動作成されます。
@@ -196,29 +187,35 @@ claude mcp list
 
 例: `reports/next_14.0.0_to_15.3.2_20260507_143022.md`
 
-> **Tips**: このリポジトリ内でレポートを管理したい場合は、upgrade-analyzer ディレクトリで Claude Code を起動するか、プロジェクトパスに upgrade-analyzer のパスを指定してください。
+> **Tips**: このリポジトリ内でレポートを管理したい場合は、upgrade-analyzer-cc ディレクトリで Claude Code を起動するか、プロジェクトパスに upgrade-analyzer-cc のパスを指定してください。
 
 ---
 
 ## 旧バージョン（Cursor版）との比較
 
-| 観点 | v3.x (Cursor + Browser) | v4.x (Claude Code) |
-|------|------------------------|---------------------|
-| 実行方法 | Cursor チャット + BrowserTab ON | `/upgrade-analyzer` スラッシュコマンド |
-| コード分析 | なし（外部情報のみ） | プロジェクトパス指定でimport箇所全検索 |
-| 実行方式 | 単一エージェント逐次 | 3エージェント並列（高速化） |
-| セキュリティ | リリースノート記載分のみ | CVE/OSV + Reachability判定 |
-| 型チェック | なし | `tsc --noEmit` 実行 |
-| 間接依存 | 限定的 | lock file解析で transitive 追跡 |
-| セットアップ | BrowserTab の毎回ON設定が必要 | 初回コマンドコピーのみ |
+| 観点     | v3.x (Cursor + Browser)     | v4.x (Claude Code)            |
+| ------ | --------------------------- | ----------------------------- |
+| 実行方法   | Cursor チャット + BrowserTab ON | `/upgrade-analyzer` スラッシュコマンド |
+| コード分析  | なし（外部情報のみ）                  | プロジェクトパス指定でimport箇所全検索        |
+| 実行方式   | 単一エージェント逐次                  | 3エージェント並列（高速化）                |
+| セキュリティ | リリースノート記載分のみ                | CVE/OSV + Reachability判定      |
+| 型チェック  | なし                          | `tsc --noEmit` 実行             |
+| 間接依存   | 限定的                         | lock file解析で transitive 追跡    |
+| セットアップ | BrowserTab の毎回ON設定が必要       | 初回コマンドコピーのみ                   |
 
 ---
 
 ## ディレクトリ構成
 
 ```text
-upgrade-analyzer/
-├── upgrade-analyzer.md        # Claude Code スラッシュコマンド定義（メイン）
+upgrade-analyzer-cc/
+├── .claude-plugin/
+│   └── plugin.json            # プラグインマニフェスト
+├── agents/
+│   └── upgrade-analyzer-agent.md  # エージェント本体（プラグイン用）
+├── skills/
+│   └── upgrade-analyzer.md   # 薄いラッパー（プラグイン用エントリポイント）
+├── upgrade-analyzer.md        # 実装本体（手動コピー向け後方互換）
 ├── README.md                  # このファイル
 ├── templates/
 │   └── prompt_template.md    # 旧Cursor版プロンプトテンプレート（参考用）
@@ -247,6 +244,7 @@ upgrade-analyzer/
 公式情報（changelog・GitHub releases）が取得できる任意のnpmパッケージに対応。
 
 特に実績のある領域:
+
 - **フロントエンド**: Next.js, React, Vue, Nuxt, Remix
 - **ランタイム・言語**: Node.js, TypeScript
 - **HTTP/API**: axios, fetch-based libraries
