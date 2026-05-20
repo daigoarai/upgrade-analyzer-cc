@@ -97,10 +97,10 @@ Claude Code の **Codex プラグイン**をインストールすれば自動で
 
 ```bash
 # Codex プラグインのインストール（未インストールの場合）
-claude /install-plugin codex
+claude plugin install codex
 
-# 登録確認
-ls ~/.claude/plugins/cache/openai-codex/
+# インストール確認
+claude plugin list
 ```
 
 インストール済みであれば追加設定は不要です。`/codex` または `codex:codex-rescue` サブエージェントとして動作します。
