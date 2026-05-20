@@ -58,13 +58,16 @@ cd upgrade-analyzer-cc
 
 Claude Code のプラグインシステムを使うと 1 コマンドで完了します。コマンドとエージェントが同時に登録され、`claude plugin update --all` で将来の更新も自動化できます。
 
+**ターミナルで実行:**
+
 ```bash
 claude plugin add github:daigoarai/upgrade-analyzer-cc
 ```
 
-インストール後に有効化:
+**その後 Claude Code を起動**（または再起動）すれば自動反映されます。  
+すでに Claude Code が起動中の場合はチャット欄で以下を実行:
 
-```bash
+```
 /reload-plugins
 ```
 
