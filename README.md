@@ -64,12 +64,8 @@ Claude Code のプラグインシステムを使うと 1 コマンドで完了�
 claude plugin add github:daigoarai/upgrade-analyzer-cc
 ```
 
-**その後 Claude Code を起動**（または再起動）すれば自動反映されます。  
-すでに Claude Code が起動中の場合はチャット欄で以下を実行:
-
-```
-/reload-plugins
-```
+その後 Claude Code を起動すれば `/upgrade-analyzer` が使えます。  
+Claude Code がすでに起動中の場合のみ、チャット欄で `/reload-plugins` を実行してください。
 
 #### 手動コピー（後方互換）
 
