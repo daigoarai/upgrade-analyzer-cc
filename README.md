@@ -86,6 +86,47 @@ cp upgrade-analyzer.md ~/.claude/commands/upgrade-analyzer.md
 
 **③ Claude Code を起動** → `/upgrade-analyzer` が使えます
 
+### アップデート方法
+
+ツール自体を最新バージョンに更新する手順です。
+
+---
+
+#### 方法A: プラグインアップデート（GitHub アクセスあり）
+
+```bash
+claude plugin update --all
+```
+
+特定プラグインのみ更新する場合:
+
+```bash
+claude plugin update upgrade-analyzer@daigoarai/upgrade-analyzer-cc
+```
+
+#### 方法B: ZIP アップデート（GitHub アクセスなし）
+
+**① 新しい ZIP をダウンロードして解凍**
+
+社内 Notion ページから最新の `upgrade-analyzer-cc.zip` をダウンロードし、任意の場所に解凍します。
+
+**② インストールスクリプトを再実行**
+
+```bash
+cd upgrade-analyzer-cc       # 解凍したフォルダに移動
+bash install.sh
+```
+
+または手動でコピーする場合:
+
+```bash
+cp upgrade-analyzer.md ~/.claude/commands/upgrade-analyzer.md
+```
+
+> 既存ファイルは上書きされます。カスタマイズしている場合は事前にバックアップしてください。
+
+---
+
 ### MCP セットアップ（クロス検証機能 — 任意・推奨）
 
 クロス検証機能は、**Claude Code に MCP 登録された Codex** を使います。  
