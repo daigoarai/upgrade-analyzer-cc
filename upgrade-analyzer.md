@@ -350,33 +350,23 @@ Breaking Changeとの照合で「このファイルのどの行が壊れるか�
 ## フェーズ1b: 外部LLMクロス検証（MCP経由・オプション）
 
 **目的**: Agent A（Claude）のchangelog解釈における誤認識・見落としリスクを軽減する。
-Claude Code に MCP 登録された Codex（OpenAI）・Gemini（Google）へ同一changelogテキストを渡し、
-独立してBreaking Changesを抽出させた上で3LLMの結果を突合して信頼度を判定する。
+Claude Code に MCP 登録された Codex（OpenAI）へ同一changelogテキストを渡し、
+独立してBreaking Changesを抽出させた上で結果を突合して信頼度を判定する。
 
-**前提条件**: Codex MCP または Gemini MCP のいずれかが Claude Code に登録されている場合のみ実施。
-どちらも未登録の場合はこのフェーズをスキップし、フェーズ4メタ情報に「クロス検証: スキップ（MCP未登録）」と記録する。
+**前提条件**: Codex MCP が Claude Code に登録されている場合のみ実施。
+未登録の場合はこのフェーズをスキップし、フェーズ4メタ情報に「クロス検証: スキップ（MCP未登録）」と記録する。
 
 ### 1b-1: 利用可能なバリデータの検出
 
 ```bash
 CODEX_OK=$(ls ~/.claude/plugins/cache/openai-codex/ 2>/dev/null | wc -l | tr -d ' ')
 echo "Codex MCP: $([ "$CODEX_OK" -gt 0 ] && echo 'available' || echo 'not configured')"
-
-GEMINI_MCP=$(claude mcp list 2>/dev/null | python3 -c "
-import sys
-for line in sys.stdin:
-    if 'gemini' in line.lower():
-        print(line.strip()); break
-" 2>/dev/null)
-echo "Gemini MCP: ${GEMINI_MCP:-not configured}"
 ```
 
-| Codex | Gemini | 対応 |
-|-------|--------|------|
-| available | 登録あり | 両方でクロス検証（最高精度） |
-| available | 登録なし | Codex のみでクロス検証 |
-| not configured | 登録あり | Gemini のみでクロス検証 |
-| not configured | 登録なし | フェーズ1b スキップ |
+| Codex | 対応 |
+|-------|------|
+| available | Codex でクロス検証 |
+| not configured | フェーズ1b スキップ |
 
 ### クロス検証プロンプト（共通）
 
@@ -397,23 +387,14 @@ BC: {API/機能名} | {変更内容の要約} | {バージョン}
 
 Agentツールで `subagent_type: "codex:codex-rescue"` を指定して Codex エージェントを起動する。
 
-### 1b-3: Gemini によるクロス検証（Gemini MCP 利用可能時のみ）
-
-1. **ToolSearch** で `{Gemini MCPサーバー名} generate` を検索してスキーマをロードする
-2. ロードされたテキスト生成ツールを呼び出す
-3. ToolSearch でツールが見つからない場合は Gemini クロス検証をスキップする
-
-### 1b-4: 結果の記録
+### 1b-3: 結果の記録
 
 ```
 [Codex]
 BC: {API名} | {変更内容} | {バージョン}
-
-[Gemini]
-BC: {API名} | {変更内容} | {バージョン}
 ```
 
-スキップされた場合はその旨を記録する（例: `[Gemini] スキップ（MCP未登録）`）。
+Codex がスキップされた場合は「[Codex] スキップ（MCP未登録）」と記録する。
 
 ---
 
@@ -525,7 +506,7 @@ Breaking Changeの影響が確定したファイルのテストは**全件実施
 | 中間バージョン | v{A}, v{B}, ... (N件) |
 | コードベース解析 | 実施 (N件のファイルを分析) / 未実施 |
 | 静的解析 | 実施 ({ツール名}, エラーN件) / 未実施 |
-| クロス検証 | Codex: 実施(BC N件検出)/スキップ、Gemini: 実施(BC N件検出)/スキップ |
+| クロス検証 | Codex: 実施(BC N件検出) / スキップ（MCP未登録） |
 | Breaking Changes | N件 (うち自コードへの影響: N件) |
 | セキュリティ修正 | N件 (CVE: N件) |
 | 新機能 | N件 |
