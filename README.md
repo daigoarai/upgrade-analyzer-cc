@@ -45,40 +45,46 @@
 - ✅ **Claude Code** がインストール済み（`npm install -g @anthropic-ai/claude-code`）
 - ✅ Claude Code のサブスクリプション（Pro/Teams/Enterprise）、または Anthropic API キーが設定されている
 
-### インストール
+### インストール方法
 
-```bash
-git clone https://github.com/daigoarai/upgrade-analyzer-cc.git
-cd upgrade-analyzer-cc
-```
+GitHub にアクセスできる環境とできない環境で手順が異なります。
 
-### スラッシュコマンドの登録
+---
 
-#### プラグインインストール（推奨）
+#### 方法A: プラグインインストール（GitHub アクセスあり・推奨）
 
-Claude Code のプラグインシステムを使うと 1 コマンドで完了します。コマンドとエージェントが同時に登録され、`claude plugin update --all` で将来の更新も自動化できます。
+ターミナルで 1 コマンド実行するだけで完了します。`claude plugin update --all` で将来の更新も自動化できます。
 
-**ターミナルで実行:**
+**① ターミナルで実行:**
 
 ```bash
 claude plugin add github:daigoarai/upgrade-analyzer-cc
 ```
 
-その後 Claude Code を起動すれば `/upgrade-analyzer` が使えます。  
-Claude Code がすでに起動中の場合のみ、チャット欄で `/reload-plugins` を実行してください。
+**② Claude Code を起動** → `/upgrade-analyzer` が使えます
 
-#### 手動コピー（後方互換）
+---
 
-プラグインが使えない環境では従来通り手動でコピーします:
+#### 方法B: ZIP インストール（GitHub アクセスなし）
+
+**① ZIP をダウンロードして解凍**
+
+社内 Notion ページから `upgrade-analyzer-cc.zip` をダウンロードし、任意の場所に解凍します。
+
+**② インストールスクリプトを実行**
 
 ```bash
-# ユーザー全体で使えるようにする場合
-cp upgrade-analyzer.md ~/.claude/commands/upgrade-analyzer.md
-
-# プロジェクトのみで使う場合
-mkdir -p .claude/commands
-cp upgrade-analyzer.md .claude/commands/upgrade-analyzer.md
+cd upgrade-analyzer-cc       # 解凍したフォルダに移動
+bash install.sh
 ```
+
+または手動でコピーする場合:
+
+```bash
+cp upgrade-analyzer.md ~/.claude/commands/upgrade-analyzer.md
+```
+
+**③ Claude Code を起動** → `/upgrade-analyzer` が使えます
 
 ### MCP セットアップ（クロス検証機能 — 任意・推奨）
 
