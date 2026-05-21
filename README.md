@@ -20,7 +20,7 @@
 | ------ | --------------------------------------------------- |
 | 外部情報   | 公式changelog・リリースノート・GitHub diff                     |
 | セキュリティ | CVE/OSV/GitHub Security Advisories + Reachability判定 |
-| 実コード分析 | プロジェクト内の使用箇所検索・TypeScript型チェック                      |
+| 実コード分析 | プロジェクト内の使用箇所検索・言語別静的解析（TypeScript / Python / Go など） |
 
 ---
 
@@ -81,18 +81,18 @@ claude plugin add github:daigoarai/upgrade-analyzer-cc
 
 **② インストールスクリプトを実行**
 
-| OS | 手順 |
-| -- | ---- |
-| **Mac / Linux** | ターミナルで `bash install.sh` を実行 |
-| **Windows（Git Bash / WSL）** | ターミナルで `bash install.sh` を実行 |
+| OS                                  | 手順                                             |
+| ----------------------------------- | ---------------------------------------------- |
+| **Mac / Linux**                     | ターミナルで `bash install.sh` を実行                   |
+| **Windows（Git Bash / WSL）**         | ターミナルで `bash install.sh` を実行                   |
 | **Windows（PowerShell / コマンドプロンプト）** | `install.bat` をダブルクリック、または `.\install.bat` を実行 |
 
 **手動コピーの場合:**
 
-| OS | コピー元 | コピー先 |
-| -- | -------- | -------- |
-| Mac / Linux | `upgrade-analyzer.md` | `~/.claude/commands/upgrade-analyzer.md` |
-| Windows | `upgrade-analyzer.md` | `%USERPROFILE%\.claude\commands\upgrade-analyzer.md` |
+| OS          | コピー元                  | コピー先                                                 |
+| ----------- | --------------------- | ---------------------------------------------------- |
+| Mac / Linux | `upgrade-analyzer.md` | `~/.claude/commands/upgrade-analyzer.md`             |
+| Windows     | `upgrade-analyzer.md` | `%USERPROFILE%\.claude\commands\upgrade-analyzer.md` |
 
 **③ Claude Code を起動** → `/upgrade-analyzer` が使えます
 
@@ -149,40 +149,45 @@ claude mcp list
 
 ## 使い方
 
-### 基本（外部情報のみ）
+### 基本構文
 
 ```text
-/upgrade-analyzer <パッケージ名> <バージョンFrom> <バージョンTo>
+/upgrade-analyzer <パッケージ名> <バージョンFrom> <バージョンTo> [プロジェクトパス] [補足情報]
 ```
+
+エコシステムは自動判定されます。npm・Python・Go・Docker・汎用ソフトウェアなど何でも指定できます。
+
+### 例: 外部情報のみ（プロジェクトパスなし）
 
 ```text
 /upgrade-analyzer next 14.0.0 15.3.2
-/upgrade-analyzer axios 1.6.0 1.8.4
-/upgrade-analyzer typescript 5.0.0 5.8.3
+/upgrade-analyzer django 4.2.0 5.1.0
+/upgrade-analyzer rails 7.0.0 7.2.0
+/upgrade-analyzer golang 1.21 1.23
+/upgrade-analyzer postgresql 14.0 16.0
+/upgrade-analyzer terraform 1.5.0 1.9.0
+/upgrade-analyzer nginx 1.24.0 1.26.0
 ```
 
-### 完全版（実コード分析 + 型チェック込み）
-
-```text
-/upgrade-analyzer <パッケージ名> <バージョンFrom> <バージョンTo> <プロジェクトパス>
-```
+### 例: 実コード分析 + 型チェック込み（プロジェクトパスあり）
 
 ```text
 /upgrade-analyzer next 14.0.0 15.3.2 /Users/me/myapp
-/upgrade-analyzer axios 1.6.0 1.8.4 /Users/me/myapp
+/upgrade-analyzer django 4.2.0 5.1.0 /Users/me/myproject
 ```
 
 プロジェクトパスを指定すると:
 
-- `src/` 配下のimport箇所を全検索
+- ソースコード配下の import / require 箇所を全検索
 - 使用しているAPIを列挙
 - Breaking Changes × 使用箇所を照合して「このファイルのこの行が壊れる」まで特定
-- TypeScript プロジェクトの場合は `tsc --noEmit` を実行
+- 言語に応じた静的解析（TypeScript: `tsc --noEmit` / Python: `mypy` / Go: `go vet` など）を実行
 
-### プロジェクト情報付き
+### 例: 補足情報付き
 
 ```text
 /upgrade-analyzer next 14.0.0 15.3.2 /Users/me/myapp "決済・認証機能に使用、24h稼働"
+/upgrade-analyzer django 4.2.0 5.1.0 /Users/me/myproject "基幹APIサーバー、週次バッチ処理あり"
 ```
 
 ---
@@ -270,18 +275,25 @@ upgrade-analyzer-cc/
 
 ---
 
-## 対応パッケージ
+## 対応範囲
 
-公式情報（changelog・GitHub releases）が取得できる任意のnpmパッケージに対応。
+公式 changelog・リリースノート・GitHub releases が取得できるソフトウェアであれば**言語・エコシステムを問わず**対応します。  
+第1引数にパッケージ名を渡すと、フェーズ0でエコシステムを自動判定します。
 
-特に実績のある領域:
+| エコシステム | 自動判定方法 | 例 |
+| ---------- | ---------- | -- |
+| **npm** (Node.js / TypeScript) | npmレジストリ確認 | next, react, axios, typescript |
+| **PyPI** (Python) | PyPIレジストリ確認 | django, fastapi, boto3 |
+| **crates.io** (Rust) | crates.io API確認 | tokio, serde, actix-web |
+| **RubyGems** (Ruby) | RubyGems API確認 | rails, devise |
+| **Go modules** | pkg.go.dev確認 | gin, echo |
+| **Docker Hub** | Docker Hub API確認 | postgres, nginx, redis |
+| **Maven Central** (Java / Kotlin) | Maven検索API確認 | spring-boot |
+| **GitHub releases** | GitHub releases API | ツール・CLIなど |
+| **汎用ソフトウェア** | Web検索で公式サイト・changelogを特定 | Terraform, Kubernetes, PostgreSQL など |
 
-- **フロントエンド**: Next.js, React, Vue, Nuxt, Remix
-- **ランタイム・言語**: Node.js, TypeScript
-- **HTTP/API**: axios, fetch-based libraries
-- **データベースクライアント**: Prisma, Drizzle, pg
-- **認証**: NextAuth, Passport
-- **ビルドツール**: Webpack, Vite, ESBuild
+> パッケージ名に `/` が含まれる場合はGoモジュール、`:` が含まれる場合はMavenとして優先判定します。  
+> changelog が公式に整備されていないパッケージは、GitHub commit diff で補完しますが精度は落ちます。
 
 ---
 
