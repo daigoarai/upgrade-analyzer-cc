@@ -51,21 +51,29 @@ GitHub にアクセスできる環境とできない環境で手順が異なり�
 
 ---
 
-#### 方法A: プラグインインストール（GitHub アクセスあり・推奨）
+#### 方法A: プラグインインストール（GitHub アクセスあり）
 
-ターミナルで 1 コマンド実行するだけで完了します。`claude plugin update --all` で将来の更新も自動化できます。
+`claude plugin update --all` で将来の更新も自動化できます。
 
-**① ターミナルで実行:**
+**前提条件（Windows の場合）**: Git for Windows がインストールされ、SSH キーが設定されていること。未設定の場合は方法Bを使用してください。
+
+**Mac / Linux:**
 
 ```bash
 claude plugin add github:daigoarai/upgrade-analyzer-cc
 ```
 
-**② Claude Code を起動** → `/upgrade-analyzer` が使えます
+**Windows（PowerShell / Git Bash）:**
+
+```powershell
+claude plugin add github:daigoarai/upgrade-analyzer-cc
+```
+
+その後 Claude Code を起動 → `/upgrade-analyzer` が使えます
 
 ---
 
-#### 方法B: ZIP インストール（GitHub アクセスなし）
+#### 方法B: ZIP インストール（GitHub アクセスなし・Windows 推奨）
 
 **① ZIP をダウンロードして解凍**
 
@@ -73,24 +81,24 @@ claude plugin add github:daigoarai/upgrade-analyzer-cc
 
 **② インストールスクリプトを実行**
 
-```bash
-cd upgrade-analyzer-cc       # 解凍したフォルダに移動
-bash install.sh
-```
+| OS | 手順 |
+| -- | ---- |
+| **Mac / Linux** | ターミナルで `bash install.sh` を実行 |
+| **Windows（Git Bash / WSL）** | ターミナルで `bash install.sh` を実行 |
+| **Windows（PowerShell / コマンドプロンプト）** | `install.bat` をダブルクリック、または `.\install.bat` を実行 |
 
-または手動でコピーする場合:
+**手動コピーの場合:**
 
-```bash
-cp upgrade-analyzer.md ~/.claude/commands/upgrade-analyzer.md
-```
+| OS | コピー元 | コピー先 |
+| -- | -------- | -------- |
+| Mac / Linux | `upgrade-analyzer.md` | `~/.claude/commands/upgrade-analyzer.md` |
+| Windows | `upgrade-analyzer.md` | `%USERPROFILE%\.claude\commands\upgrade-analyzer.md` |
 
 **③ Claude Code を起動** → `/upgrade-analyzer` が使えます
 
-### アップデート方法
-
-ツール自体を最新バージョンに更新する手順です。
-
 ---
+
+### アップデート方法
 
 #### 方法A: プラグインアップデート（GitHub アクセスあり）
 
@@ -98,32 +106,9 @@ cp upgrade-analyzer.md ~/.claude/commands/upgrade-analyzer.md
 claude plugin update --all
 ```
 
-特定プラグインのみ更新する場合:
-
-```bash
-claude plugin update upgrade-analyzer@daigoarai/upgrade-analyzer-cc
-```
-
 #### 方法B: ZIP アップデート（GitHub アクセスなし）
 
-**① 新しい ZIP をダウンロードして解凍**
-
-社内 Notion ページから最新の `upgrade-analyzer-cc.zip` をダウンロードし、任意の場所に解凍します。
-
-**② インストールスクリプトを再実行**
-
-```bash
-cd upgrade-analyzer-cc       # 解凍したフォルダに移動
-bash install.sh
-```
-
-または手動でコピーする場合:
-
-```bash
-cp upgrade-analyzer.md ~/.claude/commands/upgrade-analyzer.md
-```
-
-> 既存ファイルは上書きされます。カスタマイズしている場合は事前にバックアップしてください。
+新しい ZIP をダウンロードして解凍し、インストール手順を再実行してください。既存ファイルは上書きされます。
 
 ---
 
