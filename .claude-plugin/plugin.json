@@ -1,8 +1,8 @@
 {
   "name": "upgrade-analyzer",
   "displayName": "Upgrade Analyzer",
-  "version": "4.1.0",
-  "description": "バージョンアップ影響分析ツール。changelog・CVE・コードベース静的解析を並列実行し、Markdown と HTML レポートを生成する。",
+  "version": "4.2.0",
+  "description": "バージョンアップ影響分析ツール。changelog・CVE・コードベース静的解析を並列実行し、システム固有の機能影響マップ・リグレッション観点・ネクストアクションを含む Markdown と HTML（左サイドメニュー付き）レポートを生成する。",
   "author": {
     "name": "daigo-arai"
   },

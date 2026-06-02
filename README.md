@@ -1,7 +1,7 @@
 # Upgrade Analyzer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-4.0-green.svg)](https://github.com/daigoarai/upgrade-analyzer-cc/releases)
+[![Version](https://img.shields.io/badge/version-4.2-green.svg)](https://github.com/daigoarai/upgrade-analyzer-cc/releases)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Compatible-blueviolet.svg)](https://claude.ai/code)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
@@ -13,6 +13,7 @@
 ## 概要
 
 ライブラリ・フレームワークのバージョンアップ時に**インシデントを未然防止**するための影響分析ツールです。
+「ライブラリがどう変わったか」だけでなく、**自社システムのどの機能が壊れるか**まで踏み込んで分析します。
 
 **Claude Code** のサブエージェント並列実行を活用し、以下の3軸を同時に分析します:
 
@@ -21,6 +22,18 @@
 | 外部情報   | 公式changelog・リリースノート・GitHub diff                     |
 | セキュリティ | CVE/OSV/GitHub Security Advisories + Reachability判定 |
 | 実コード分析 | プロジェクト内の使用箇所検索・言語別静的解析（TypeScript / Python / Go など） |
+
+---
+
+## 🆕 v4.2 の主な強化（現場フィードバック反映）
+
+> 「ライブラリがどう変わったか」だけでなく「**自社システムのどの機能が壊れるか**」まで踏み込み、レビューしやすい形で出力します。
+
+- 🗺️ **システム固有の影響マップ**: 仕様書・コードから機能ドメイン（認証 / 決済 / 検索…）を把握し、各 Breaking Change を「**どの機能が壊れるか**」に直結（開発者への丸投げを解消）
+- 🔁 **リグレッションテスト観点の自動生成**: 全機能の基本動作確認チェックリストを「機能名＋確認手順」で出力（影響範囲が不明確でも全機能を最小手順で確認できる運用に対応）
+- 🚀 **ネクストアクション（意思決定サマリー）**: レポート冒頭に「今すぐやること・影響機能・必須テスト観点」を1画面に凝縮。レビュアーはここだけ読めば判断できる（2層構造で詳細は下段）
+- 🧭 **左サイドメニュー付きHTML**: 単一HTML自己完結のまま、固定サイドナビで全セクションへ素早く移動（オフライン閲覧可）
+- 📄 **仕様書/プロジェクト情報の取り込み＋Web検索補完**: 仕様書パス/URL を渡すと精度最大化。無い場合はプロジェクト名から自動で Web 検索しシステム概要を補完
 
 ---
 
@@ -152,10 +165,11 @@ claude mcp list
 ### 基本構文
 
 ```text
-/upgrade-analyzer <パッケージ名> <バージョンFrom> <バージョンTo> [プロジェクトパス] [補足情報]
+/upgrade-analyzer <パッケージ名> <バージョンFrom> <バージョンTo> [プロジェクトパス] [仕様書パス/URL] [補足情報]
 ```
 
 エコシステムは自動判定されます。npm・Python・Go・Docker・汎用ソフトウェアなど何でも指定できます。
+**プロジェクトパス＋仕様書**を渡すと、システム固有の影響マップとリグレッション観点まで生成され精度が最大化します。
 
 ### 例: 外部情報のみ（プロジェクトパスなし）
 
@@ -190,12 +204,24 @@ claude mcp list
 /upgrade-analyzer django 4.2.0 5.1.0 /Users/me/myproject "基幹APIサーバー、週次バッチ処理あり"
 ```
 
+### 例: 仕様書あり（精度最大・推奨）
+
+```text
+/upgrade-analyzer next 14.0.0 15.3.2 /Users/me/myapp --spec=/Users/me/myapp/docs/spec.md
+/upgrade-analyzer next 14.0.0 15.3.2 /Users/me/myapp --spec=https://example.com/system-overview
+```
+
+仕様書（パス or URL・複数可）を渡すと、機能ドメイン（認証 / 決済 など）を把握し、
+「**どの機能が壊れるか**」の影響マップと、全機能の**リグレッションテスト観点**を生成します。
+仕様書が無くてもプロジェクト名から自動で Web 検索してシステム概要を補完します。
+
 ---
 
 ## 生成されるレポートの構成
 
 | セクション              | 内容                                                      |
 | ------------------ | ------------------------------------------------------- |
+| 🚀 ネクストアクション        | 今すぐやること・影響機能・必須テスト観点を1画面に凝縮（意思決定サマリー・上段）              |
 | エグゼクティブサマリー        | 総合リスク評価・アップグレード推奨度（changelog取得失敗時は再実施警告を冒頭に表示）          |
 | メタ情報               | 中間バージョン一覧・分析範囲・クロス検証実施状況・件数サマリー                         |
 | インシデントリスク評価        | リスク種別×発生確率×影響度の表形式評価                                    |
