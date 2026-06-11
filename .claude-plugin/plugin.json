@@ -1,11 +1,15 @@
 {
   "name": "upgrade-analyzer",
   "displayName": "Upgrade Analyzer",
-  "version": "4.2.0",
-  "description": "バージョンアップ影響分析ツール。changelog・CVE・コードベース静的解析を並列実行し、システム固有の機能影響マップ・リグレッション観点・ネクストアクションを含む Markdown と HTML（左サイドメニュー付き）レポートを生成する。",
+  "version": "4.4.0",
+  "description": "バージョンアップ影響分析ツール。changelog・CVE（OSV/GitHub Advisories API）・コードベース静的解析を並列実行し、システム固有の機能影響マップ・リグレッション観点・判定ルーブリックを含む Markdown / HTML（スクリプト変換・左サイドメニュー付き）/ JSON サマリーを生成する。",
   "author": {
     "name": "daigo-arai"
   },
-  "skills": ["./skills/"],
-  "agents": ["./agents/"]
+  "skills": [
+    "./skills/"
+  ],
+  "agents": [
+    "./agents/"
+  ]
 }
