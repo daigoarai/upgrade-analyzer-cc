@@ -79,6 +79,24 @@ $ARGUMENTS
 - **From ≧ To**: ダウングレードまたは同一バージョン。意図的か確認するメッセージを出して処理を中断する
 - **レジストリに到達できない場合**（汎用ソフトウェア等）: 「バージョン実在チェック: 不能」と記録して続行する
 
+### 0-4: Fromバージョンの実態照合（プロジェクトパス指定時のみ・誤前提分析の防止）
+
+引数の From が、プロジェクトに**実際にインストールされているバージョン**と一致するかをlockファイルで確認する。
+実態と異なるFromで分析を進めると、BC照合・reachability判定・テスト観点がすべて誤った前提の上に構築されるため、ここで必ず突合する。
+
+| エコシステム | 確認方法（上から順に試す） |
+|------------|--------------------------|
+| npm | `package-lock.json` / `yarn.lock` / `pnpm-lock.yaml` の対象パッケージの解決バージョン |
+| Python | `poetry.lock` / `Pipfile.lock` / `requirements.txt` のピン止めバージョン |
+| Go | `go.mod` の `require` 行 |
+| Rust | `Cargo.lock` の `[[package]]` エントリ |
+| Java | `pom.xml` / `gradle.lockfile` の対象バージョン |
+| Ruby | `Gemfile.lock` の対象gem行 |
+
+- **一致**: そのまま続行（メタ情報に「From実態照合: 一致」と記録）
+- **不一致**: 「⚠️ 引数From={From} ですが、lockファイル上の実インストールは v{実バージョン} です」と提示して**処理を中断**し、正しいFromでの再実行を促す。ユーザーが「意図的な指定」と回答した場合のみ続行し、メタ情報に「From実態照合: 不一致（引数優先で続行・実態 v{実バージョン}）」と記録する
+- **lockファイルなし・対象パッケージが見つからない**: 「From実態照合: 不能」と記録して続行する（プロジェクトパス未指定時は「未実施」）
+
 ---
 
 ## フェーズ0.5: システムプロファイリング（システム固有分析の土台）
@@ -178,13 +196,27 @@ changelog取得とは独立して、`{パッケージ名} upgrade guide {Toの�
 - 取得できなかったURLは「❌ 取得失敗（{エラー種別}）」と記録し、取得できた情報で分析を継続する
 - **取得に成功したchangelogテキストの生データ**（最大8000文字）を返却フォーマットの末尾に必ず含めること（フェーズ1bクロス検証で使用）
 
-**8000文字キャップの扱い（大規模アップグレードでのBC欠落防止）**:
+**A-2-2: 大規模レンジのチャンク分割抽出（BC欠落防止・最重要）**
 
-changelog全文が8000文字を超える場合、先頭から機械的に切り捨てず、以下の優先順で8000文字に収める:
+以下のいずれかに該当する場合、changelog全文を**メジャー／マイナーバージョン境界で分割**し、チャンクごとに独立してBC抽出（A-3の基準・原文引用義務を適用）を行い、結果を統合する。**BC抽出は必ず全文を対象とし、文字数キャップで抽出対象を切り捨ててはならない**:
+
+- 中間バージョンが20版以上
+- changelog全文が24000文字超
+
+チャンク分割手順:
+1. changelog全文をバージョン見出し（`## vX.Y.Z` / GitHub Releasesのタグ単位等）で分割し、1チャンク約8000文字以内にまとめる（**バージョンの途中で切らない**）
+2. 各チャンクに対してA-3のBC抽出を実施する（チャンク数が多い場合はサブエージェントに分担させてよい）
+3. 全チャンクの結果を統合し、重複BC（同一API・同一変更内容）をマージする
+4. 返却フォーマットに「チャンク分割抽出: N分割（全文M文字）」を記録する（分割不要だった場合は「なし」）
+
+**`<CHANGELOG_RAW>` 8000文字キャップの役割**:
+
+8000文字の抜粋は `<CHANGELOG_RAW>`（フェーズ1bクロス検証・フェーズ2-0aの原文照合ペイロード）**にのみ**適用する。抜粋は先頭から機械的に切り捨てず、以下の優先順で収める:
 1. 「Breaking Changes」「Migration」「Upgrading」「Deprecations」見出し配下のセクション
 2. メジャー／マイナーバージョン境界（vX.0.0 / vX.Y.0）のリリースノート
 3. 残り枠でその他の変更
-切り捨てが発生した場合は `<CHANGELOG_RAW>` の冒頭に「⚠️ 全{N}文字中8000文字を抜粋（BC関連セクション優先）」と必ず明記する（クロス検証の対象範囲をレポート読者が把握できるようにするため）。
+
+切り捨てが発生した場合は `<CHANGELOG_RAW>` の冒頭に「⚠️ 全{N}文字中8000文字を抜粋（BC関連セクション優先）」と必ず明記する。抜粋外のチャンクから抽出したBCは、抽出時に取得した原文引用を根拠として扱う（2-0参照）。
 
 **リトライ全失敗時の警告処理（重要）**:
 
@@ -225,6 +257,12 @@ From〜To間の全バージョンのchangelogから以下を必ず抽出:
 - 設定ファイル・環境変数の変更（インフラツール・フレームワークの場合）
 - 認証・セキュリティポリシーの変更
 
+**原文引用の義務（全BC共通・ハルシネーション防止）**:
+
+抽出した各BCには、changelog・リリースノート・公式アップグレードガイドの**原文該当行の引用**（最大200字）を必ず付ける。
+原文に存在しない変更を推測・一般知識から出力してはならない。引用元が `<CHANGELOG_RAW>` に入らないソース（公式アップグレードガイド・抜粋外チャンク等）の場合は、引用とともに出典URLを明記する。
+引用を付けられないBCは返却フォーマットの「未確認候補」欄に分離する（BCリストには入れない）。
+
 **抽出時のOK/NG例（厳選3組）**:
 > ✅ `fetch` のキャッシュ既定が変わった → 「挙動変更BC」として抽出（コードは動くが結果が変わる）
 > ❌ それを「新機能・改善」欄に混ぜて Breaking Change から漏らす
@@ -243,9 +281,12 @@ GitHubリポジトリ: {URL or 不明}
 公式アップグレードガイド: {URL or なし}
 公式codemod/移行ツール: {コマンド or なし}
 中間バージョン: [v1, v2, ...]
+チャンク分割抽出: なし / N分割（全文M文字）
 Breaking Changes: N件
-  - BC-1: {API名/機能名} | {変更内容} | {バージョン} | {URL}
+  - BC-1: {API名/機能名} | {変更内容} | {バージョン} | {URL} | 根拠: "{原文引用（最大200字）}"
   - BC-2: ...
+未確認候補: N件（原文引用を付けられなかったもの。BCリスト外・参考情報行き）
+  - {内容} | {検出理由}
 Security Fixes: N件
   - SF-1: {CVE番号 or 説明} | {バージョン} | {URL}
 Deprecations: N件
@@ -559,10 +600,23 @@ Codex がスキップされた場合は「[Codex] スキップ（MCP未登録）
 
 Agent A・B・Cの結果をすべて受け取ってから実行する。
 
-### 2-0: クロス検証結果の突合（フェーズ1b実施時のみ）
+### 2-0: BC根拠の検証と信頼度ラベル付与
+
+#### 2-0a: 全BCの原文照合（**常時実施** — クロス検証の有無に関係なく行う）
+
+Agent A の各BCについて、根拠引用が実在するかを確認する:
+
+| 照合結果 | 扱い |
+|---------|------|
+| 引用が `<CHANGELOG_RAW>` 内に実在する | BCとして採用 |
+| 引用が抜粋外だが、出典URL付きで引用が付いている（公式ガイド・チャンク由来） | BCとして採用（出典URLをレポートに記載） |
+| 引用なし／照合不可 | BCリストから**除外**し、「11. 参考情報」に「未確認情報（出典照合不可）」として記録。除外が2件以上発生した場合はAgent Aの抽出品質に問題があるため、該当バージョン範囲の再抽出を1回実施する |
+
+#### 2-0b: クロス検証結果の突合（フェーズ1b実施時のみ）
 
 Agent A の BC リストと Codex の出力を突合し、各 BC に**信頼度ラベル**を付与する。
 突合は「API名または変更内容の類似性」で判断する（完全一致不要・同義語・略記も合致扱い）。
+`<CHANGELOG_RAW>` 抜粋外のチャンク由来BCはCodexの検証対象外のため、2-0aの照合OKを条件に「⚠️ 要確認（単一ソース・抜粋外）」とする。
 
 | 検出状況 | 信頼度ラベル | フェーズ2・4 での扱い |
 |---------|------------|-------------------|
@@ -791,7 +845,9 @@ Musubellの運用（ライブラリ更新時は影響範囲が不明確なため
 | パッケージ | {名前} |
 | エコシステム | {検出したエコシステム} |
 | バージョン範囲 | v{From} → v{To} |
+| From実態照合 | 一致 / 不一致（引数優先で続行・実態 v{X}） / 不能 / 未実施 |
 | 中間バージョン | v{A}, v{B}, ... (N件) |
+| チャンク分割抽出 | なし / N分割（全文M文字） |
 | システムプロファイル | 仕様書あり(高) / README・Web(中) / 取得不可(低) ｜ 機能ドメイン: N個 |
 | コードベース解析 | 実施 (N件のファイルを分析) / 未実施 |
 | ベースライン静的解析 | 実施 ({ツール名}, 既存エラーN件 — アップグレード前の現状) / 未実施 |
@@ -825,6 +881,7 @@ Musubellの運用（ライブラリ更新時は影響範囲が不明確なため
 **信頼度**: ✅ 高信頼（A+Codex一致） / ⚠️ 要確認（単一ソース） / 🔴 Agent A 見落とし（クロス検証で追加・原文照合済み）／ クロス検証スキップ時は「検証なし（単一ソース）」
 **バージョン**: v{X.Y.Z}
 **公式情報**: [リンク](URL)
+**根拠引用**: "{changelog/公式ガイド原文の該当行}"（抜粋外・公式ガイド由来の場合は出典URLを併記）
 **変更内容**: {技術的な説明}
 **自社コードへの影響**:
   - 影響あり → `{ファイルパス}:{行番号}` — {具体的に何が壊れるか}
@@ -1001,6 +1058,7 @@ LLMが以下のテンプレートでHTMLを直接生成する。
 - オフラインでも閲覧可能
 - ブラウザで直接開いて使用できる
 - **省略禁止**: MDの全セクションを漏れなくHTMLに変換すること。「以降同様」「省略」等のコメントで内容を間引いてはならない（MDとHTMLの内容同一性が崩れるため）
+- **チェックリストは実input**: `- [ ]` 項目は `<li><label><input type="checkbox" data-ck="{文書内一意の連番0,1,2,...}"> <span>{内容}</span></label></li>` に変換する（テンプレート末尾の `<script>` がlocalStorageで状態を永続化し、ヘッダーに進捗バッジを表示する。`data-ck` の連番が重複すると状態が混線するため必ず一意にする）
 - **以下のHTMLテンプレートの `<style>` を改変せずそのまま使用する（独自CSSへの置き換え禁止）**。特に `.sidenav` の `height: 100vh; overflow-y: auto;` は変更禁止 — `min-height` に変えるとメニューが長い場合にナビがスクロールできず、下段の項目が選択不能になる
 
 **HTMLテンプレート**（フォールバック時に以下の構造と `<style>` を必ず適用する）:
@@ -1082,11 +1140,16 @@ pre { background: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px;
 code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px; }
 p code, li code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; }
-/* チェックリスト */
+/* チェックリスト（実input・localStorageで状態永続化） */
 .checklist { list-style: none; padding: 0; }
-.checklist li { padding: 5px 0 5px 26px; position: relative; font-size: 13px; }
-.checklist li::before { content: "☐"; position: absolute; left: 4px;
-  color: #6a737d; font-size: 14px; }
+.checklist li { padding: 5px 0; font-size: 13px; }
+.checklist label { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+.checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0;
+  width: 14px; height: 14px; accent-color: #28a745; cursor: pointer; }
+.checklist li.done > label { color: #6a737d; text-decoration: line-through; }
+/* チェック進捗バッジ（ヘッダー） */
+.check-progress { display: inline-block; margin-left: 12px; padding: 2px 10px;
+  border-radius: 12px; background: rgba(255,255,255,0.18); font-size: 12px; }
 /* アラートボックス */
 .alert { padding: 12px 16px; border-radius: 6px; margin: 12px 0;
   font-size: 13px; border-left: 4px solid; }
@@ -1122,6 +1185,7 @@ footer { text-align: center; color: #6a737d; font-size: 12px;
   <div class="meta">
     エコシステム: {エコシステム} ｜ 分析日: {YYYY-MM-DD HH:MM} ｜
     Breaking Changes: {N}件 ｜ CVE: {N}件
+    <span class="check-progress" id="check-progress" hidden></span>
   </div>
 </div>
 
@@ -1153,8 +1217,8 @@ footer { text-align: center; color: #6a737d; font-size: 12px;
       <h3>① 🔧 開発工程（間違いなく作る）</h3>
       <p>アップグレード時に必ず対応が必要なコード修正を優先度順に示します。</p>
       <ul class="checklist">
-        <li>{機能ドメイン}: {何がどう壊れるか＋設計/実装時の注意 1行} <a class="jump" href="#bc-1">詳細: BC-1 →</a></li>
-        <li>{CVE対応・環境要件変更など} <a class="jump" href="#security">詳細: セキュリティ →</a></li>
+        <li><label><input type="checkbox" data-ck="0"> <span>{機能ドメイン}: {何がどう壊れるか＋設計/実装時の注意 1行} <a class="jump" href="#bc-1">詳細: BC-1 →</a></span></label></li>
+        <li><label><input type="checkbox" data-ck="1"> <span>{CVE対応・環境要件変更など} <a class="jump" href="#security">詳細: セキュリティ →</a></span></label></li>
       </ul>
       <p>→ 実装完了時の確認: <a class="jump" href="#dev-check">開発工程 完了チェック</a></p>
       <h3>② 🧪 テスト工程（各工程で見逃さない）</h3>
@@ -1214,9 +1278,44 @@ footer { text-align: center; color: #6a737d; font-size: 12px;
 </div>
 
 <footer>
-  生成日: {YYYY-MM-DD} ｜ upgrade-analyzer v4.4 ｜ Claude Code
+  生成日: {YYYY-MM-DD} ｜ upgrade-analyzer v4.5 ｜ Claude Code
 </footer>
 
+<script>
+(function () {
+  "use strict";
+  var key = "ua-check:" + document.title + ":" + "{YYYY-MM-DD}";
+  var boxes = Array.prototype.slice.call(
+    document.querySelectorAll('.checklist input[type="checkbox"]'));
+  if (!boxes.length) { return; }
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) {}
+  function sync(box) {
+    var li = box.closest("li");
+    if (li) { li.classList.toggle("done", box.checked); }
+  }
+  function badge() {
+    var done = boxes.filter(function (b) { return b.checked; }).length;
+    var el = document.getElementById("check-progress");
+    if (el) {
+      el.hidden = false;
+      el.textContent = "チェック進捗: " + done + " / " + boxes.length;
+    }
+  }
+  boxes.forEach(function (box) {
+    var id = box.getAttribute("data-ck");
+    if (typeof saved[id] === "boolean") { box.checked = saved[id]; }
+    sync(box);
+    box.addEventListener("change", function () {
+      saved[id] = box.checked;
+      try { localStorage.setItem(key, JSON.stringify(saved)); } catch (e) {}
+      sync(box);
+      badge();
+    });
+  });
+  badge();
+})();
+</script>
 </body>
 </html>
 ```
@@ -1271,6 +1370,8 @@ mkdir -p {保存先ディレクトリ}
   "cves": 0,
   "cves_reachable": 0,
   "code_analysis": true,
+  "from_lock_check": "match | mismatch_continued | unknown | not_run",
+  "chunked_extraction": false,
   "trial_upgrade": "success | conflict | skipped",
   "cross_validation": "codex | skipped",
   "system_profile": "spec | readme_web | none",
@@ -1317,5 +1418,7 @@ mkdir -p {保存先ディレクトリ}
 8. **出力は2層・2トピック・機能粒度で**: 上段「0. サマリー」は「① 開発工程（間違いなく作る）」「② テスト工程（各工程で見逃さない）」の2トピックに凝縮し、各項目から詳細（`#bc-n` / `#test-unit` 等）へアンカーリンクで飛べるようにする。完了チェック（`#dev-check` / `#test-check` / `#release-check`）は工程別に詳細セクション末尾へ統合する。テスト観点は「機能名＋確認手順」で記述し、詳細・全件は下段へ。「全部テスト」のような曖昧指示は禁止
 9. **セキュリティ調査はJSON APIのみ使用**: `osv.dev/list`・NVD検索画面・GitHub Advisories一覧画面はJSレンダリング必須でWebFetchでは取得できない。「CVE 0件」と報告する前に、APIレスポンスの取得成否（取得失敗と結果ゼロの区別）を必ず確認する
 10. **ベースライン静的解析の誤認防止**: C-6の静的解析は旧バージョンに対するベースライン。「アップグレード後の検証」と誤認させる表記をしない。アップグレード前の事前検証はC-7（試験アップグレード）の依存解決結果を使う
-11. **クロス検証の追加BCは原文照合必須**: Codexのみが検出したBCは、changelog原文の引用が `<CHANGELOG_RAW>` と照合できた場合のみBCリストに採用する（ハルシネーション混入防止）。照合できないものは「未確認情報」として参考情報に記録のみ
+11. **全BCに原文引用を義務化**: Agent A 自身のBCも含め、原文引用のないBCはレポートに載せない（2-0a）。Codexのみが検出したBCも同様に原文照合できた場合のみ採用（ハルシネーション混入防止）。照合できないものは「未確認情報」として参考情報に記録のみ
 12. **判定の再現性**: 総合リスク・推奨度・対応コストは2-5のルーブリックに従って判定する。逸脱する場合は理由をレポートに明記する（監査対応）
+13. **大規模レンジは必ずチャンク分割**: 中間20版以上 or changelog 24000文字超なら A-2-2 のチャンク分割抽出を実施する。BC抽出を8000文字の抜粋だけで済ませてはならない（抜粋はクロス検証・原文照合のペイロード専用）
+14. **Fromは実態と照合してから分析**: プロジェクトパス指定時は 0-4 のlockファイル照合を必ず実施する。引数と実態が違うまま進めた分析は全フェーズが誤前提になる

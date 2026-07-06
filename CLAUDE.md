@@ -45,7 +45,7 @@ cp upgrade-analyzer.md ~/.claude/commands/upgrade-analyzer.md
 
 | フェーズ   | 内容                                                | 実行方式          |
 | ------ | ------------------------------------------------- | ------------- |
-| フェーズ0  | エコシステム自動判定（npm/PyPI/Go/Rust/Ruby/Maven/Docker/汎用）＋バージョン実在チェック | WebFetch順次    |
+| フェーズ0  | エコシステム自動判定（npm/PyPI/Go/Rust/Ruby/Maven/Docker/汎用）＋バージョン実在チェック＋From実態照合（lockファイル突合） | WebFetch順次    |
 | フェーズ1  | 外部情報収集（changelog・マイグレーションガイド・codemod） / セキュリティ調査（OSV・GitHub Advisories・NVDの各JSON API） / コードベース解析（import＋設定ファイル検索・ベースライン静的解析・試験アップグレード） | **3エージェント並列** |
 | フェーズ1b | MCP経由クロス検証（Codex）で信頼度ラベルを付与（追加BCは原文照合必須）         | オプション         |
 | フェーズ2  | ハイブリッド影響分析（BC×コード使用箇所マッチング・Reachability判定・総合判定ルーブリック） | LLM推論         |
@@ -103,6 +103,7 @@ JSONは機械可読サマリー（リスク・推奨度・BC/CVE件数等）で�
 | `.cursorrules`                 | 旧Cursor版（v3.x）の定義。参考用                        |
 | `templates/report_template.md` | レポートの構造・セクション定義                              |
 | `templates/prompt_template.md` | 旧Cursor版プロンプトテンプレート（参考用）                     |
+| `eval/`                        | ゴールデン評価セット（正解BCリスト＋`score.py` で recall 自動計測。プロンプト改修時の回帰確認用） |
 | `examples/`                    | 実際に生成されたレポートのサンプル                            |
 | `reports/`                     | 生成レポートの保存先（`.gitkeep` のみコミット）                |
 | `docs/`                        | 旧設計書（Cursor時代のアーキテクチャ記述）                     |
@@ -113,12 +114,15 @@ JSONは機械可読サマリー（リスク・推奨度・BC/CVE件数等）で�
 - `agents/upgrade-analyzer-agent.md` は `upgrade-analyzer.md` へのシンボリックリンク。本体の編集だけで自動同期される（手動コピー不要）
 - プラグイン利用者への配布: `git push` 後に `claude plugin update --all` で自動反映
 - 手動コピー利用者への配布: `~/.claude/commands/upgrade-analyzer.md` へ再コピーが必要
-- エコシステム判定・バージョン実在チェックはフェーズ0（`0-1` / `0-2` / `0-3`）に記述
-- WebFetchリトライロジック（エラー種別分岐）・マイグレーションガイド検索・8000文字キャップ処理はフェーズ1 Agent A の `A-2` に記述
+- エコシステム判定・バージョン実在チェック・From実態照合はフェーズ0（`0-1` / `0-2` / `0-3` / `0-4`）に記述
+- WebFetchリトライロジック（エラー種別分岐）・マイグレーションガイド検索・チャンク分割抽出（`A-2-2`）・8000文字キャップ（`<CHANGELOG_RAW>` ペイロード専用）はフェーズ1 Agent A の `A-2` に記述
+- 全BCへの原文引用義務は Agent A の `A-3`、常時実施の原文照合は `2-0a`、クロス検証突合は `2-0b` に記述
 - セキュリティ調査のAPIエンドポイント（OSV/GitHub Advisories/NVD）はフェーズ1 Agent B の `B-1`〜`B-3` に記述
 - 多言語対応のimport検索パターンは `C-2`、設定ファイル検索は `C-2b`、ベースライン静的解析は `C-6`、試験アップグレードは `C-7` に記述
 - MCP検出ロジックはフェーズ1b の `1b-1` セクションに記述
 - 信頼度ラベル付与ロジック（原文照合必須化を含む）はフェーズ2の `2-0` セクションに記述
+- HTMLチェックリストの状態永続化は `scripts/md_to_html.py` の `CHECK_SCRIPT` と、フェーズ4フォールバックテンプレート末尾の `<script>` に記述（CSSと同様、両者は同一内容を維持する）
+- **プロンプト改修時は `eval/` のゴールデン評価で回帰確認する**: `python3 eval/score.py {レポート.md} --case eval/cases/{ケース}.json` で recall を改修前後で比較し、低下したらリリースしない（手順は `eval/README.md`）
 - 総合判定ルーブリック（リスク・推奨度・コスト）はフェーズ2の `2-5` セクションに記述
 - HTML生成は `scripts/md_to_html.py` が標準。スクリプトの固定CSSを変更する場合は、フェーズ4のフォールバック用HTMLテンプレートの `<style>` にも同じ変更を適用する（両者は同一テンプレートを維持）
 - MDレポートのセクションは `## {番号}. {タイトル}` のH2構成が必須（変換スクリプトがH2単位で分割するため）。構成を変える場合は `templates/report_template.md`・`upgrade-analyzer.md` フェーズ4・`scripts/md_to_html.py` の `SECTION_ID_RULES` を整合させる

@@ -1,7 +1,7 @@
 # Upgrade Analyzer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-4.4-green.svg)](https://github.com/daigoarai/upgrade-analyzer-cc/releases)
+[![Version](https://img.shields.io/badge/version-4.5-green.svg)](https://github.com/daigoarai/upgrade-analyzer-cc/releases)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Compatible-blueviolet.svg)](https://claude.ai/code)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
@@ -25,7 +25,22 @@
 
 ---
 
-## 🆕 v4.4 の主な強化（Fable 5 レビュー反映）
+## 🆕 v4.5 の主な強化（精度・漏れ・現場対応の3軸強化）
+
+**精度（ハルシネーション排除）**
+- 📎 **全BCに原文引用を義務化**: Agent A 自身のBCも含め、changelog・公式ガイド原文の引用がないBCはレポートに載せない（2-0a で常時照合）。引用はBCカードに表示され、現場が一次情報を即座に再確認できる
+- 🔒 **Fromバージョン実態照合（0-4）**: プロジェクトパス指定時はlockファイルの実インストールバージョンと引数Fromを突合。不一致なら中断して確認（誤前提分析の防止）
+
+**漏れ（recall向上）**
+- 🧩 **チャンク分割抽出（A-2-2）**: 中間20版以上 or changelog 24000文字超では、バージョン境界で分割して全文からBC抽出（map-reduce）。8000文字キャップは「クロス検証・原文照合ペイロード」に役割を限定し、抽出対象の切り捨てを廃止
+
+**現場対応**
+- ☑️ **HTMLチェックリストの状態永続化**: チェックボックスが実inputになり、チェック状態をlocalStorageに保存（ブラウザを閉じても消えない）。ヘッダーに「チェック進捗: N / M」バッジを表示。レポートがそのまま作業管理票になる
+
+**ツール自身のQA**
+- 🎯 **ゴールデン評価セット（eval/）**: 正解BCリスト付きの既知アップグレードで recall を自動計測（`eval/score.py`）。プロンプト改修のたびに回帰評価を実行し、改善効果を数値で検証（v4.4ベースライン: next 14→15.3 で recall 90.9%・swcMinify削除を見落とし → チャンク分割で対策）
+
+## v4.4 の主な強化（Fable 5 レビュー反映）
 
 調査方法・結果の導き方・出力の3観点レビューに基づく精度・再現性・出力品質の強化:
 
@@ -368,6 +383,7 @@ upgrade-analyzer-cc/
 
 ## 更新履歴
 
+- **2026-07-06 v4.5**: 精度・漏れ・現場対応の3軸強化。全BCへの原文引用義務化（2-0a常時照合）、Fromバージョン実態照合（0-4・lockファイル突合）、changelogチャンク分割抽出（A-2-2・8000字キャップの役割変更）、HTMLチェックリストのlocalStorage永続化＋進捗バッジ、ゴールデン評価セット（eval/・recall自動計測）を追加
 - **2026-06-11 v4.4**: Fable 5 レビュー反映。セキュリティ調査をJSON API化（OSV/GitHub Advisories/NVD）、公式マイグレーションガイド・codemod調査を追加、試験アップグレード（依存解決ドライラン）追加、import検索をプロジェクトルート全体＋設定ファイル検索に拡張、総合判定ルーブリック導入、クロス検証の原文照合必須化、HTML生成をスクリプト変換（scripts/md_to_html.py）に移行、JSONサマリー出力・保存前セルフチェックを追加
 - **2026-06-05 v4.3**: レポート最上段を「0. サマリー」＝「① 開発工程（間違いなく作る）/ ② テスト工程（各工程で見逃さない）」の2トピック構成に再編（各項目から詳細へアンカーリンク）。テスト戦略を単体・結合・総合・リグレッションのテストレベル別に再編し、各レベルに「特に気をつけること」を追加。インシデント防止チェックリストを工程別完了チェック（開発/テスト/リリース判定）へ分割統合。BC詳細に「設計・実装時の注意」欄を追加。HTMLサイドナビのスクロール不能対策（テンプレートCSS改変禁止を明文化）
 - **2026-06-02 v4.2**: システム影響マップ・リグレッション観点自動生成・2層レポート（ネクストアクション）・左サイドメニューHTMLを追加（会議フィードバック反映）

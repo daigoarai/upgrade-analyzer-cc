@@ -1,0 +1,71 @@
+{
+  "case_id": "next_14.0.0_to_15.3.2",
+  "package": "next",
+  "ecosystem": "npm",
+  "from": "14.0.0",
+  "to": "15.3.2",
+  "curated_at": "2026-07-06",
+  "sources": [
+    "https://nextjs.org/docs/app/building-your-application/upgrading/version-15",
+    "https://nextjs.org/blog/next-15",
+    "https://github.com/vercel/next.js/releases"
+  ],
+  "notes": "正解BCはNext.js 15公式アップグレードガイド・リリースブログから人手でキュレーション。patterns はレポートMD本文に対する大文字小文字無視の正規表現で、いずれか1つが一致すれば検出とみなす。",
+  "must_find": [
+    {
+      "id": "async-request-apis",
+      "title": "Request APIs（cookies/headers/draftMode/params/searchParams）の非同期化",
+      "patterns": ["cookies\\(\\)", "headers\\(\\).{0,80}(async|await|非同期)", "(async|await|非同期).{0,80}headers\\(\\)", "Async Request API"]
+    },
+    {
+      "id": "fetch-default-no-cache",
+      "title": "fetch のデフォルトキャッシュ無効化（no-store化）",
+      "patterns": ["fetch.{0,120}(キャッシュ|no-store|cache)", "(キャッシュ|no-store).{0,120}fetch"]
+    },
+    {
+      "id": "route-handler-get-no-cache",
+      "title": "GET Route Handler のデフォルト非キャッシュ化",
+      "patterns": ["Route Handler.{0,120}(キャッシュ|cache)", "GET.{0,80}Route Handler"]
+    },
+    {
+      "id": "client-router-cache",
+      "title": "クライアントルーターキャッシュの既定変更（staleTime 0）",
+      "patterns": ["staleTime", "(クライアント)?(ルーター|Router).{0,40}(キャッシュ|Cache).{0,120}(既定|デフォルト|default|0)"]
+    },
+    {
+      "id": "react-19-required",
+      "title": "React 19 が必須に（App Router）",
+      "patterns": ["React ?19"]
+    },
+    {
+      "id": "node-min-version",
+      "title": "Node.js 最低バージョンの引き上げ（18.18+）",
+      "patterns": ["18\\.18", "Node(\\.js)? ?(v)?18"]
+    },
+    {
+      "id": "server-external-packages",
+      "title": "experimental.serverComponentsExternalPackages → serverExternalPackages",
+      "patterns": ["serverExternalPackages", "serverComponentsExternalPackages"]
+    },
+    {
+      "id": "bundle-pages-router-deps",
+      "title": "experimental.bundlePagesExternals → bundlePagesRouterDependencies",
+      "patterns": ["bundlePagesRouterDependencies", "bundlePagesExternals"]
+    },
+    {
+      "id": "squoosh-removed",
+      "title": "next/image の squoosh 削除（sharp が既定に）",
+      "patterns": ["squoosh"]
+    },
+    {
+      "id": "nextrequest-geo-ip-removed",
+      "title": "NextRequest の geo / ip プロパティ削除（@vercel/functions へ移行）",
+      "patterns": ["NextRequest.{0,80}(geo|ip)", "@vercel/functions", "\\bgeo\\b.{0,40}\\bip\\b"]
+    },
+    {
+      "id": "swc-minify-removed",
+      "title": "next.config の swcMinify オプション削除",
+      "patterns": ["swcMinify"]
+    }
+  ]
+}

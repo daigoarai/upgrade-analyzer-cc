@@ -19,7 +19,46 @@ import html
 import re
 import sys
 
-TEMPLATE_VERSION = "4.4"
+TEMPLATE_VERSION = "4.5"
+
+# チェックリスト状態の localStorage 永続化（自己完結・外部JSなし）
+# __DATE__ はレポート日付に置換され、保存キーの一部になる
+CHECK_SCRIPT = """\
+<script>
+(function () {
+  "use strict";
+  var key = "ua-check:" + document.title + ":" + "__DATE__";
+  var boxes = Array.prototype.slice.call(
+    document.querySelectorAll('.checklist input[type="checkbox"]'));
+  if (!boxes.length) { return; }
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) {}
+  function sync(box) {
+    var li = box.closest("li");
+    if (li) { li.classList.toggle("done", box.checked); }
+  }
+  function badge() {
+    var done = boxes.filter(function (b) { return b.checked; }).length;
+    var el = document.getElementById("check-progress");
+    if (el) {
+      el.hidden = false;
+      el.textContent = "チェック進捗: " + done + " / " + boxes.length;
+    }
+  }
+  boxes.forEach(function (box) {
+    var id = box.getAttribute("data-ck");
+    if (typeof saved[id] === "boolean") { box.checked = saved[id]; }
+    sync(box);
+    box.addEventListener("change", function () {
+      saved[id] = box.checked;
+      try { localStorage.setItem(key, JSON.stringify(saved)); } catch (e) {}
+      sync(box);
+      badge();
+    });
+  });
+  badge();
+})();
+</script>"""
 
 CSS = """\
 /* リセット */
@@ -92,12 +131,16 @@ pre { background: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px;
 code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px; }
 p code, li code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; }
-/* チェックリスト */
+/* チェックリスト（実input・localStorageで状態永続化） */
 .checklist { list-style: none; padding: 0; }
-.checklist li { padding: 5px 0 5px 26px; position: relative; font-size: 13px; }
-.checklist li::before { content: "☐"; position: absolute; left: 4px;
-  color: #6a737d; font-size: 14px; }
-.checklist li.checked::before { content: "☑"; color: #28a745; }
+.checklist li { padding: 5px 0; font-size: 13px; }
+.checklist label { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+.checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0;
+  width: 14px; height: 14px; accent-color: #28a745; cursor: pointer; }
+.checklist li.done > label { color: #6a737d; text-decoration: line-through; }
+/* チェック進捗バッジ（ヘッダー） */
+.check-progress { display: inline-block; margin-left: 12px; padding: 2px 10px;
+  border-radius: 12px; background: rgba(255,255,255,0.18); font-size: 12px; }
 /* 通常リスト */
 .content ul:not(.checklist), .content ol:not(.sidenav ol) { padding-left: 24px; margin: 8px 0; }
 .content li { margin: 3px 0; }
@@ -191,10 +234,16 @@ def alert_class(first_line):
     return "alert-info"
 
 
-def render_blocks(lines):
-    """セクション本文（H2配下）のブロック変換。"""
+def render_blocks(lines, ck_counter=None):
+    """セクション本文（H2配下）のブロック変換。
+
+    ck_counter: チェックボックスへ文書内で一意な data-ck 連番を振るためのカウンタ
+    （[0] を保持するリスト。None の場合は 0 起点のローカルカウンタ）。
+    """
     out = []
     i = 0
+    if ck_counter is None:
+        ck_counter = [0]
     pending_anchor = None  # 直前の <a id=...></a> を次の見出しに移植する
 
     def flush_anchor_inline():
@@ -300,8 +349,14 @@ def render_blocks(lines):
                     depth -= 1
                 cm = re.match(r"^\[([ xX])\]\s+(.*)$", text)
                 if cm:
-                    cls = ' class="checked"' if cm.group(1).lower() == "x" else ""
-                    parts.append("<li%s>%s</li>" % (cls, inline(cm.group(2))))
+                    checked = " checked" if cm.group(1).lower() == "x" else ""
+                    cls = ' class="done"' if checked else ""
+                    parts.append(
+                        '<li%s><label><input type="checkbox" data-ck="%d"%s> '
+                        "<span>%s</span></label></li>"
+                        % (cls, ck_counter[0], checked, inline(cm.group(2)))
+                    )
+                    ck_counter[0] += 1
                 else:
                     parts.append("<li>%s</li>" % inline(text))
             while depth > 0:
@@ -402,13 +457,14 @@ def convert(md_text):
 
     nav_items = []
     body_parts = []
+    ck_counter = [0]  # 文書内チェックボックスの一意連番（localStorage永続化キー）
     for idx, (sec_title, sec_lines) in enumerate(sections):
         sid = section_id_for(sec_title, idx)
         # 同名idの重複回避
         if any(sid == existing for existing, _ in nav_items):
             sid = "%s-%d" % (sid, idx)
         nav_items.append((sid, sec_title))
-        inner = render_blocks(sec_lines)
+        inner = render_blocks(sec_lines, ck_counter)
         if sid == "next-action":
             body_parts.append(
                 '<section class="next-action" id="next-action">\n<h2>🚀 %s</h2>\n%s\n</section>'
@@ -442,7 +498,7 @@ def convert(md_text):
   <h1>📊 {title}
     <span class="risk-badge risk-{risk_cls}">{risk_label}</span>
   </h1>
-  <div class="meta">{meta_line}</div>
+  <div class="meta">{meta_line}<span class="check-progress" id="check-progress" hidden></span></div>
 </div>
 
 <div class="layout">
@@ -462,6 +518,7 @@ def convert(md_text):
   生成日: {date} ｜ upgrade-analyzer v{version} ｜ md_to_html.py（スクリプト変換）
 </footer>
 
+{script}
 </body>
 </html>
 """.format(
@@ -474,6 +531,7 @@ def convert(md_text):
         body="\n\n".join(body_parts),
         date=html.escape(date) if date else "-",
         version=TEMPLATE_VERSION,
+        script=CHECK_SCRIPT.replace("__DATE__", date or "-"),
     )
     return doc
 
